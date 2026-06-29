@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="HospitalBackend (h2)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="hospital-backend" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.neusoft.hospital.HospitalApplication" />
+    <option name="ACTIVE_PROFILES" value="h2" />
+    <option name="ENV_VARIABLES">
+      <map>
+        <entry key="HOSPITAL_WX_DEMO" value="true" />
+      </map>
+    </option>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

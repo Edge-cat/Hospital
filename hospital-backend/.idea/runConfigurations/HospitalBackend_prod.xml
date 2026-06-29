@@ -1,0 +1,20 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="HospitalBackend (prod)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="hospital-backend" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.neusoft.hospital.HospitalApplication" />
+    <option name="ACTIVE_PROFILES" value="prod" />
+    <option name="ENV_VARIABLES">
+      <map>
+        <entry key="HOSPITAL_DB_URL" value="jdbc:mysql://127.0.0.1:3307/hospital_his?useUnicode=true&amp;characterEncoding=utf8&amp;connectionCollation=utf8mb4_unicode_ci&amp;serverTimezone=Asia/Shanghai&amp;allowPublicKeyRetrieval=true&amp;useSSL=false" />
+        <entry key="HOSPITAL_DB_USER" value="hospital" />
+        <entry key="HOSPITAL_DB_PASSWORD" value="hospital123" />
+        <entry key="HOSPITAL_JWT_SECRET" value="local-dev-jwt-secret-min-256-bits-long-enough-for-his" />
+        <entry key="HOSPITAL_WX_DEMO" value="true" />
+        <entry key="HOSPITAL_CORS_ORIGINS" value="http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:8088" />
+      </map>
+    </option>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,25 @@
+{
+  "name": "东软云医院",
+  "appid": "wx0000000000000000",
+  "description": "东软云医院HIS小程序端 - 患者移动端",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx0000000000000000",
+    "setting": {
+      "urlCheck": true,
+      "es6": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "lazyCodeLoading": "requiredComponents",
+    "networkTimeout": {
+      "request": 60000,
+      "connectSocket": 60000,
+      "uploadFile": 60000,
+      "downloadFile": 60000
+    }
+  },
+  "vueVersion": "3"
+}

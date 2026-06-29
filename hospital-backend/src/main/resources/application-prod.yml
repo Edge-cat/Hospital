@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${HOSPITAL_DB_URL:jdbc:mysql://127.0.0.1:3307/hospital_his?useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${HOSPITAL_DB_USER:hospital}
+    password: ${HOSPITAL_DB_PASSWORD:change_me}
+  sql:
+    init:
+      mode: never
+  cache:
+    type: simple
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+hospital:
+  jwt:
+    secret: ${HOSPITAL_JWT_SECRET:please-change-this-jwt-secret-in-production-min-256-bits}
+    expire-hours: ${HOSPITAL_JWT_EXPIRE_HOURS:24}
+  wx:
+    demo: ${HOSPITAL_WX_DEMO:false}
+    demo-phone: ${HOSPITAL_WX_DEMO_PHONE:13800138000}
+    app-id: ${HOSPITAL_WX_APP_ID:}
+    app-secret: ${HOSPITAL_WX_APP_SECRET:}
+  cors:
+    allowed-origins: ${HOSPITAL_CORS_ORIGINS:https://admin.example.com,https://user.example.com}

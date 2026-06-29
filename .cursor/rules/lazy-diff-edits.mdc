@@ -1,0 +1,38 @@
+---
+description: Token-saving rules when modifying existing code — show diffs only, never rewrite full files.
+alwaysApply: true
+---
+
+# Lazy Diff — Code Modification Rules
+
+When modifying existing code, you MUST adhere to the following rules:
+
+1. **Never rewrite the entire file:** If a file is large, DO NOT output the complete code.
+
+2. **Use placeholders:** For unchanged classes, functions, or blocks, use `// ...existing code...` (or the language's equivalent comment style) to skip them.
+
+3. **Contextual anchors:** Keep only 2–3 lines of unchanged code before and after your modifications so the user knows exactly where to apply the changes.
+
+4. **Actionable updates only:** Your goal is to show the *diff*, not the full state.
+
+## Language Equivalents for Placeholders
+
+| Language | Placeholder |
+|----------|-------------|
+| JavaScript / TypeScript / Java / C | `// ...existing code...` |
+| Python / Shell | `# ...existing code...` |
+| Vue / HTML | `<!-- ...existing code... -->` |
+| CSS / SCSS | `/* ...existing code... */` |
+| SQL | `-- ...existing code...` |
+
+## Example
+
+```javascript
+// ...existing code...
+function handleSubmit() {
+  if (submitLocked.value) return  // added: prevent double submit
+  submitLocked.value = true
+  // ...existing code...
+}
+// ...existing code...
+```

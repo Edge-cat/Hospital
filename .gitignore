@@ -1,0 +1,42 @@
+# Eclipse / local workspace (do not commit)
+.metadata/
+.classpath
+.project
+.settings/
+
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/target/
+*.jar
+*.war
+*.class
+
+# IDE
+**/.idea/*
+!**/.idea/runConfigurations/
+!**/.idea/runConfigurations/**
+.vscode/
+*.iml
+
+# Logs & temp
+*.log
+log/*.tmp
+.DS_Store
+Thumbs.db
+
+# Env secrets (keep .env.development / .env.production templates)
+.env
+.env.local
+.env.*.local
+
+# OS / tooling
+*.swp
+*.swo
+~$*
+
+# Uni-app / Vite cache
+**/.vite/
+**/unpackage/

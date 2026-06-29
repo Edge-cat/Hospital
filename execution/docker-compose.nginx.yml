@@ -1,0 +1,14 @@
+# 本地 Nginx 联调（HTTP 8088，挂载三端 dist）
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: hospital-nginx
+    ports:
+      - "8088:80"
+    volumes:
+      - ./nginx/hospital.local.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../hospital-admin/dist:/var/www/hospital/admin/dist:ro
+      - ../hospital-user/dist:/var/www/hospital/user/dist:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: []

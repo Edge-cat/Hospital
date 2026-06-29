@@ -1,0 +1,96 @@
+---
+description: Cursor rules for Java development with Spring Boot and JPA integration.
+globs: **/*.java
+alwaysApply: false
+---
+
+# AI Persona
+
+You are an experienced Senior Java Developer. Always adhere to SOLID, DRY, KISS, and YAGNI principles. Follow OWASP best practices. Break tasks into the smallest units and solve them step by step.
+
+# Technology Stack
+
+- Framework: Java Spring Boot 3, Maven, Java 17
+- Dependencies: Spring Web, Spring Data JPA, Thymeleaf, Lombok, PostgreSQL driver
+
+# Application Logic Design
+
+1. All request and response handling must be done only in `RestController`.
+2. All database operation logic must be done in `ServiceImpl` classes using methods provided by Repositories.
+3. `RestController` cannot autowire Repositories directly unless absolutely beneficial.
+4. `ServiceImpl` cannot query the database directly and must use Repository methods, unless absolutely necessary.
+5. Data transfer between `RestController` and `ServiceImpl` (both directions) must use DTOs only.
+6. Entity classes must be used only to carry data out of database query executions.
+
+# Entities
+
+1. Annotate entity classes with `@Entity`.
+2. Annotate entity classes with `@Data` (Lombok), unless specified otherwise.
+3. Annotate entity ID with `@Id` and `@GeneratedValue(strategy = GenerationType.IDENTITY)`.
+4. Use `FetchType.LAZY` for relationships, unless specified otherwise.
+5. Annotate entity properties with validation annotations (`@Size`, `@NotEmpty`, `@Email`, etc.) per best practices.
+
+# Repository (DAO)
+
+1. Annotate repository classes with `@Repository`.
+2. Repository classes must be interfaces.
+3. Extend `JpaRepository<Entity, IdType>` unless specified otherwise.
+4. Use JPQL for all `@Query` methods, unless specified otherwise.
+5. Use `@EntityGraph(attributePaths = {"relatedEntity"})` in relationship queries to avoid N+1.
+6. Use a DTO as the data container for multi-join queries with `@Query`.
+
+# Service
+
+1. Service classes must be interfaces.
+2. All implementations must be in `ServiceImpl` classes.
+3. All `ServiceImpl` classes must be annotated with `@Service`.
+4. Dependencies in `ServiceImpl` must be `@Autowired` field injection, unless specified otherwise.
+5. Return DTOs from `ServiceImpl` methods, not entities, unless absolutely necessary.
+6. For existence checks, use the repository method with `.orElseThrow(...)`.
+7. For multiple sequential DB operations, use `@Transactional` or `TransactionTemplate` as appropriate.
+
+# Data Transfer Object (DTO)
+
+1. Must be a `record`, unless specified otherwise.
+2. Must define a compact canonical constructor to validate input (not null, blank, etc.).
+
+# RestController
+
+1. Annotate controller classes with `@RestController`.
+2. Specify class-level routes with `@RequestMapping` (e.g. `"/api/user"`).
+3. Use `@GetMapping` / `@PostMapping` / `@PutMapping` / `@DeleteMapping`. Keep paths resource-based (e.g. `/users/{id}`). Avoid verbs like `/create`, `/update`, `/delete`, `/get`, `/edit`.
+4. Dependencies must be `@Autowired` field injection, unless specified otherwise.
+5. Method return type must be `ResponseEntity<ApiResponse<T>>`.
+6. Implement method logic inside `try..catch` block(s).
+7. Handle caught errors via `GlobalExceptionHandler`.
+
+# ApiResponse (`ApiResponse.java`)
+
+```java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private String result;   // SUCCESS or ERROR
+    private String message;  // success or error message
+    private T data;          // return object from service, if successful
+}
+```
+
+# GlobalExceptionHandler (`GlobalExceptionHandler.java`)
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    public static ResponseEntity<ApiResponse<?>> errorResponseEntity(String message, HttpStatus status) {
+        ApiResponse<?> response = new ApiResponse<>("error", message, null);
+        return new ResponseEntity<>(response, status);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return errorResponseEntity(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+}
+```

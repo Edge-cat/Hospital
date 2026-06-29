@@ -1,0 +1,81 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": { "navigationBarTitleText": "东软云医院", "navigationBarBackgroundColor": "#3370ff", "navigationBarTextStyle": "white" }
+    },
+    {
+      "path": "pages/visit/visit",
+      "style": { "navigationBarTitleText": "预约挂号", "navigationBarBackgroundColor": "#3370ff", "navigationBarTextStyle": "white" }
+    },
+    {
+      "path": "pages/register/register",
+      "style": { "navigationBarTitleText": "预约挂号", "navigationBarBackgroundColor": "#3370ff", "navigationBarTextStyle": "white" }
+    },
+    {
+      "path": "pages/appointment/appointment",
+      "style": { "navigationBarTitleText": "预约挂号", "navigationBarBackgroundColor": "#3370ff", "navigationBarTextStyle": "white" }
+    },
+    {
+      "path": "pages/payment/payment",
+      "style": { "navigationBarTitleText": "在线缴费", "navigationBarBackgroundColor": "#3370ff", "navigationBarTextStyle": "white" }
+    },
+    {
+      "path": "pages/payment/result",
+      "style": { "navigationBarTitleText": "支付成功", "navigationBarBackgroundColor": "#3370ff", "navigationBarTextStyle": "white" }
+    },
+    {
+      "path": "pages/mine/mine",
+      "style": { "navigationBarTitleText": "我的", "navigationBarBackgroundColor": "#3370ff", "navigationBarTextStyle": "white" }
+    },
+    {
+      "path": "pages/login/login",
+      "style": { "navigationBarTitleText": "登录", "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/department/department",
+      "style": {
+        "navigationBarTitleText": "科室介绍",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/department/detail",
+      "style": { "navigationBarTitleText": "科室详情" }
+    },
+    {
+      "path": "pages/notice/notice",
+      "style": { "navigationBarTitleText": "医院公告" }
+    },
+    {
+      "path": "pages/notice/detail",
+      "style": { "navigationBarTitleText": "公告详情" }
+    },
+    {
+      "path": "pages/records/records",
+      "style": { "navigationBarTitleText": "就诊记录" }
+    },
+    {
+      "path": "pages/mine/itinerary",
+      "style": { "navigationBarTitleText": "就诊行程" }
+    },
+    {
+      "path": "pages/mine/my-register",
+      "style": { "navigationBarTitleText": "我的挂号" }
+    },
+    {
+      "path": "pages/mine/my-appointment",
+      "style": { "navigationBarTitleText": "我的预约" }
+    },
+    {
+      "path": "pages/mine/profile",
+      "style": { "navigationBarTitleText": "个人信息" }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "东软云医院",
+    "navigationBarBackgroundColor": "#3370ff",
+    "backgroundColor": "#f5f6f7"
+  }
+}
