@@ -16,7 +16,7 @@ export function useDepartments() {
       departments.value = mapDeptList(res.data?.list || res.data || [])
       return departments.value
     } catch (e) {
-      error.value = e?.message || '科室加载失败，请稍后重试'
+      error.value = e?.message || e?.data?.message || '科室加载失败，请稍后重试'
       departments.value = []
       return []
     } finally {

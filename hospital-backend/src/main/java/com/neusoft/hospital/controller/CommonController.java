@@ -2,10 +2,10 @@ package com.neusoft.hospital.controller;
 
 import com.neusoft.hospital.common.ApiResponse;
 import com.neusoft.hospital.common.PageResult;
-import com.neusoft.hospital.entity.SysDepartment;
 import com.neusoft.hospital.service.CommonMetaService;
 import com.neusoft.hospital.service.DepartmentService;
 import com.neusoft.hospital.service.StatisticsService;
+import com.neusoft.hospital.service.support.DepartmentPresentationHelper;
 import com.neusoft.hospital.service.support.RegisterConfigHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +25,7 @@ public class CommonController {
     private final DepartmentService departmentService;
     private final StatisticsService statisticsService;
     private final RegisterConfigHelper registerConfigHelper;
+    private final DepartmentPresentationHelper departmentPresentationHelper;
 
     @GetMapping("/meta")
     public ApiResponse<Map<String, Object>> meta() {
@@ -43,8 +44,8 @@ public class CommonController {
 
     /** 患者端/小程序：科室列表（无需管理端权限） */
     @GetMapping("/departments")
-    public ApiResponse<PageResult<SysDepartment>> departments() {
-        List<SysDepartment> list = departmentService.listAll();
+    public ApiResponse<PageResult<Map<String, Object>>> departments() {
+        List<Map<String, Object>> list = departmentPresentationHelper.enrichForPatient(departmentService.listAll());
         return ApiResponse.success(new PageResult<>(list, list.size(), 1, list.size()));
     }
 

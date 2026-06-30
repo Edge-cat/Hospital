@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
 CREATE TABLE IF NOT EXISTS sys_department (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(64) NOT NULL,
+    code VARCHAR(16),
     parent_id BIGINT DEFAULT 0,
     sort INT DEFAULT 0,
     status TINYINT DEFAULT 1,
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS register_order (
     fee DECIMAL(10,2),
     status TINYINT DEFAULT 0,
     register_time TIMESTAMP,
+    time_slot VARCHAR(32),
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -112,6 +114,9 @@ CREATE TABLE IF NOT EXISTS payment (
     guide_tip VARCHAR(512),
     fee_breakdown CLOB,
     voucher_no VARCHAR(64),
+    register_id BIGINT,
+    register_no VARCHAR(32),
+    record_id BIGINT,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -124,6 +129,7 @@ CREATE TABLE IF NOT EXISTS medical_record (
     department VARCHAR(64),
     diagnosis VARCHAR(255),
     treatment VARCHAR(512),
+    order_items CLOB,
     visit_time TIMESTAMP,
     status TINYINT DEFAULT 2,
     revision_status TINYINT DEFAULT 0,
@@ -353,3 +359,8 @@ CREATE TABLE IF NOT EXISTS sys_login_log (
     message VARCHAR(255),
     login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 增量补丁：H2 使用 CREATE IF NOT EXISTS 时旧表不会自动加列
+ALTER TABLE register_order ADD COLUMN IF NOT EXISTS time_slot VARCHAR(32);
+ALTER TABLE payment ADD COLUMN IF NOT EXISTS register_id BIGINT;
+ALTER TABLE payment ADD COLUMN IF NOT EXISTS register_no VARCHAR(32);

@@ -85,6 +85,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
 import { useDictStore } from '@/stores/dict'
+import { useOperationFeed } from '@/composables/useOperationFeed'
 
 const route = useRoute()
 const router = useRouter()
@@ -92,6 +93,8 @@ const userStore = useUserStore()
 const permissionStore = usePermissionStore()
 const dictStore = useDictStore()
 const collapsed = ref(false)
+
+useOperationFeed()
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta.title)

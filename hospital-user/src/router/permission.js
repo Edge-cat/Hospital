@@ -13,7 +13,7 @@ export function setupPermissionGuard(router) {
     const userStore = useUserStore()
 
     if (ROUTE_WHITE_LIST.includes(to.path)) {
-      if (to.path === '/login' && userStore.token) {
+      if ((to.path === '/login' || to.path === '/signup') && userStore.token) {
         next({ path: '/home' })
       } else {
         next()

@@ -49,7 +49,7 @@
 
         <el-radio-group v-model="form.registerType">
 
-          <el-radio v-for="t in registerTypes" :key="t.value" :label="t.value">
+          <el-radio v-for="t in registerTypes" :key="t.value" :value="t.value">
 
             {{ t.label }} ¥{{ t.fee }}
 

@@ -7,14 +7,15 @@
         </el-select>
       </el-form-item>
       <el-form-item label="医生" prop="doctorName">
-        <el-select
-          v-model="form.doctorName"
-          placeholder="请先选择科室"
-          style="width: 100%"
-          :disabled="!form.department"
-        >
-          <el-option v-for="doc in doctors" :key="doc.id" :label="`${doc.name} (${doc.title})`" :value="doc.name" />
-        </el-select>
+        <DoctorPicker
+          :department="form.department"
+          :doctors="doctors"
+          :loading="loadingDoctors"
+          :selected-id="selectedDoctorId"
+          :show-remaining="!!form.appointmentDate"
+          @select="onDoctorSelect"
+          @profile="openProfile"
+        />
       </el-form-item>
 
       <el-form-item v-if="form.doctorName" label="预约日期" prop="appointmentDate">
@@ -41,6 +42,7 @@
             >
               <span class="date-chip__label">{{ day.label || day.weekday }}</span>
               <span class="date-chip__date">{{ day.shortDate || day.date.slice(5) }}</span>
+              <span v-if="day.dayRemaining != null" class="date-chip__remain">余{{ day.dayRemaining }}</span>
             </button>
           </div>
         </div>
@@ -78,11 +80,19 @@
         <el-button @click="$router.push('/my-appointment')">查看我的预约</el-button>
       </el-form-item>
     </el-form>
+
+    <DoctorProfileDrawer
+      v-model:visible="profileVisible"
+      :doctor="profileDoctor"
+      :dept-label="form.department"
+      book-label="选择该医生"
+      @book="bookFromProfile"
+    />
   </FormCard>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { userApi } from '@/api'
@@ -90,6 +100,8 @@ import { useUserStore } from '@/stores/user'
 import { useDepartmentForm } from '@/composables/useDepartmentForm'
 import { useAppointmentSchedule } from '@/composables/useAppointmentSchedule'
 import { usePatientProfile } from '@/composables/usePatientProfile'
+import DoctorPicker from '@/components/DoctorPicker.vue'
+import DoctorProfileDrawer from '@/components/DoctorProfileDrawer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -112,7 +124,7 @@ const rules = {
   patientName: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
 }
 
-const { departments, doctors, loadDoctors, loadDepartments, initFromQuery } = useDepartmentForm(form, { autoLoad: false })
+const { departments, doctors, loadingDoctors, loadDoctors, loadDepartments, initFromQuery } = useDepartmentForm(form, { autoLoad: false })
 const {
   selectableDates,
   timeSlotOptions,
@@ -124,8 +136,29 @@ const {
   selectDate,
   selectSlot,
   resetSchedule
-} = useAppointmentSchedule(form, doctors)
+} = useAppointmentSchedule(form, doctors, { futureOnly: true })
 const { profile, load: loadProfile } = usePatientProfile()
+
+const profileVisible = ref(false)
+const profileDoctor = ref(null)
+
+const selectedDoctorId = computed(() =>
+  doctors.value.find((d) => d.name === form.doctorName)?.id ?? null
+)
+
+function onDoctorSelect(doc) {
+  form.doctorName = doc.name
+}
+
+function openProfile(doc) {
+  profileDoctor.value = doc
+  profileVisible.value = true
+}
+
+function bookFromProfile(doc) {
+  form.doctorName = doc.name
+  profileVisible.value = false
+}
 
 function onDepartmentChange() {
   resetSchedule()
@@ -144,8 +177,13 @@ async function handleSubmit() {
   await formRef.value.validate()
   submitting.value = true
   try {
-    await userApi.appointment(form)
+    const doc = doctors.value.find((d) => d.name === form.doctorName)
+    await userApi.appointment({
+      ...form,
+      doctorId: doc?.id
+    })
     ElMessage.success('预约成功')
+    await loadSchedule()
     router.push('/my-appointment')
   } finally {
     submitting.value = false
@@ -206,6 +244,18 @@ async function handleSubmit() {
   font-weight: 500;
   color: #1f2329;
   margin-top: 2px;
+}
+
+.date-chip__remain {
+  font-size: 11px;
+  color: var(--feishu-success, #00b42a);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.date-chip.active .date-chip__remain {
+  color: var(--feishu-primary, #3370ff);
+  font-weight: 600;
 }
 
 .slot-hint,

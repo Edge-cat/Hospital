@@ -66,6 +66,11 @@ public class PatientController {
         return ApiResponse.success(null, "批量删除成功");
     }
 
+    @GetMapping("/{id}/consultation-record")
+    public ApiResponse<Map<String, Object>> consultationRecord(@PathVariable Long id) {
+        return ApiResponse.success(patientService.getConsultationRecord(id));
+    }
+
     @PostMapping("/{id}/consultation")
     public ApiResponse<Void> startConsultation(@PathVariable Long id) {
         patientService.startConsultation(id);

@@ -80,6 +80,15 @@
               <dt>患者姓名</dt>
               <dd>{{ row.patientName }}</dd>
             </div>
+            <div v-if="row.status === 0 && row.feeBreakdown?.length" class="payment-card__breakdown">
+              <dt>费用明细</dt>
+              <dd>
+                <div v-for="(item, idx) in row.feeBreakdown" :key="idx" class="breakdown-line">
+                  <span>{{ item.name }}</span>
+                  <span>¥{{ Number(item.amount || 0).toFixed(2) }}</span>
+                </div>
+              </dd>
+            </div>
             <div class="payment-card__row payment-card__row--amount">
               <dt>金额</dt>
               <dd>¥{{ row.amount?.toFixed(2) }}</dd>
@@ -378,8 +387,33 @@ function downloadReceipt(row) {
 
 .payment-card__row--amount dd {
   font-size: 18px;
-  font-weight: 700;
-  color: var(--feishu-danger);
+  font-weight: 600;
+  color: var(--feishu-primary);
+}
+
+.payment-card__breakdown {
+  display: flex;
+  padding: 8px 0 12px;
+  font-size: 13px;
+  border-bottom: 1px dashed var(--feishu-border-light);
+}
+
+.payment-card__breakdown dt {
+  width: 72px;
+  color: var(--feishu-text-tertiary);
+  flex-shrink: 0;
+}
+
+.payment-card__breakdown dd {
+  flex: 1;
+  margin: 0;
+}
+
+.breakdown-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  color: var(--feishu-text-secondary);
 }
 
 .text-danger {

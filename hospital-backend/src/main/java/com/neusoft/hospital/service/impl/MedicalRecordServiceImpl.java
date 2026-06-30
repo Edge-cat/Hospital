@@ -26,6 +26,8 @@ import com.neusoft.hospital.service.MedicalRecordService;
 
 import com.neusoft.hospital.service.support.EntityPageHelper;
 
+import com.neusoft.hospital.service.support.PatientScopeHelper;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -66,6 +68,8 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
     private final ObjectMapper objectMapper;
 
+    private final PatientScopeHelper patientScopeHelper;
+
 
 
     @Override
@@ -73,6 +77,14 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     public PageResult<MedicalRecord> list(PageQuery query) {
 
         return EntityPageHelper.page(medicalRecordMapper, query, w -> {
+
+            patientScopeHelper.applyPatientScope(w, MedicalRecord::getPatientId);
+
+            if (patientScopeHelper.isPatientUser()) {
+
+                w.eq(MedicalRecord::getStatus, 2);
+
+            }
 
             EntityPageHelper.keywordLike(w, query.getKeyword(), MedicalRecord::getPatientName, MedicalRecord::getDiagnosis);
 

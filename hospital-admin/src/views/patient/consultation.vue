@@ -52,7 +52,7 @@
       </aside>
 
       <!-- 右侧诊疗工作台 -->
-      <main class="consultation-workspace">
+      <main v-loading="recordLoading" class="consultation-workspace">
         <template v-if="activePatient">
           <header class="workspace-header">
             <div>
@@ -60,34 +60,105 @@
               <p>{{ activePatient.gender === 1 ? '男' : '女' }} · {{ activePatient.age }}岁 · {{ activePatient.department }} · {{ activePatient.phone }}</p>
             </div>
             <div class="workspace-header__actions">
+              <el-button
+                v-if="canUseAiAssist"
+                class="ai-assist-btn"
+                :loading="aiLoading"
+                @click="onOpenAiAssist"
+              >
+                AI 临床辅助
+              </el-button>
               <el-button v-if="activePatient.status === 1" type="success" :loading="finishing" @click="finishConsultation">
                 完成就诊 · 下一位
               </el-button>
             </div>
           </header>
 
-          <el-tabs v-model="activeTab" class="workspace-tabs">
+          <el-alert
+            v-if="lockLevel !== 'none'"
+            :title="lockReason"
+            :type="lockLevel === 'full' ? 'success' : 'warning'"
+            :closable="false"
+            show-icon
+            class="workspace-lock-alert"
+          />
+
+          <el-tabs v-model="activeTab" class="workspace-tabs" :class="{ 'is-semi-locked': lockLevel === 'semi', 'is-full-locked': lockLevel === 'full' }">
             <el-tab-pane label="病历书写" name="record">
               <el-form label-width="80px" class="workspace-form">
                 <el-form-item label="主诉">
-                  <el-input v-model="consultForm.chiefComplaint" type="textarea" :rows="2" placeholder="患者主诉..." />
+                  <el-input
+                    v-model="consultForm.chiefComplaint"
+                    type="textarea"
+                    :rows="2"
+                    placeholder="患者主诉..."
+                    :readonly="isLocked"
+                    :class="{ 'field-locked': isLocked }"
+                  />
                 </el-form-item>
                 <el-form-item label="现病史">
-                  <el-input v-model="consultForm.presentIllness" type="textarea" :rows="3" placeholder="现病史描述..." />
+                  <el-input
+                    v-model="consultForm.presentIllness"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="现病史描述..."
+                    :readonly="isLocked"
+                    :class="{ 'field-locked': isLocked }"
+                  />
                 </el-form-item>
                 <el-form-item label="诊断">
-                  <el-input v-model="consultForm.diagnosis" type="textarea" :rows="2" placeholder="初步/确定诊断..." />
+                  <el-input
+                    v-model="consultForm.diagnosis"
+                    type="textarea"
+                    :rows="2"
+                    placeholder="初步/确定诊断..."
+                    :readonly="isLocked"
+                    :class="{ 'field-locked': isLocked }"
+                  />
                 </el-form-item>
               </el-form>
             </el-tab-pane>
             <el-tab-pane label="辅助检查" name="exam">
-              <el-checkbox-group v-model="consultForm.exams">
-                <el-checkbox v-for="e in examOptions" :key="e" :value="e">{{ e }}</el-checkbox>
-              </el-checkbox-group>
-              <el-input v-model="consultForm.examNote" type="textarea" :rows="3" placeholder="检查备注..." style="margin-top: 12px" />
+              <p v-if="!isLocked" class="form-hint">勾选常用检查或添加自定义项目，无需填写价格（由护士确认计价）</p>
+              <div class="exam-section">
+                <span class="exam-section__label">常用项目</span>
+                <el-checkbox-group v-model="consultForm.exams" :disabled="isLocked" class="exam-checkboxes">
+                  <el-checkbox v-for="e in examOptions" :key="e" :value="e">{{ e }}</el-checkbox>
+                </el-checkbox-group>
+              </div>
+              <div class="exam-section">
+                <span class="exam-section__label">自定义项目</span>
+                <div v-for="(exam, idx) in consultForm.customExams" :key="idx" class="custom-exam-row">
+                  <el-input
+                    v-model="exam.name"
+                    placeholder="输入检查项目名称，如 MRI、血糖、病理活检..."
+                    :readonly="isLocked"
+                    :class="{ 'field-locked': isLocked }"
+                    @keyup.enter="addCustomExam"
+                  />
+                  <el-button v-if="!isLocked && consultForm.customExams.length > 1" link type="danger" @click="removeCustomExam(idx)">删除</el-button>
+                </div>
+                <el-button v-if="!isLocked" link type="primary" @click="addCustomExam">+ 添加自定义项目</el-button>
+              </div>
+              <el-input
+                v-model="consultForm.examNote"
+                type="textarea"
+                :rows="3"
+                placeholder="检查备注..."
+                style="margin-top: 12px"
+                :readonly="isLocked"
+                :class="{ 'field-locked': isLocked }"
+              />
             </el-tab-pane>
             <el-tab-pane label="处方下达" name="rx">
-              <el-input v-model="consultForm.prescription" type="textarea" :rows="6" placeholder="Rp.&#10;药品名称 规格 用法用量..." />
+              <p v-if="!isLocked" class="form-hint">填写药品名称与用法，无需填写价格（由护士确认计价）</p>
+              <div v-for="(drug, idx) in consultForm.drugs" :key="idx" class="drug-row">
+                <el-input v-model="drug.name" placeholder="药品名称" :readonly="isLocked" :class="{ 'field-locked': isLocked }" />
+                <el-input-number v-model="drug.qty" :min="1" :max="99" :disabled="isLocked" />
+                <el-input v-model="drug.usage" placeholder="用法用量" :readonly="isLocked" :class="{ 'field-locked': isLocked }" />
+                <el-button v-if="!isLocked && consultForm.drugs.length > 1" link type="danger" @click="removeDrug(idx)">删除</el-button>
+              </div>
+              <el-button v-if="!isLocked" link type="primary" @click="addDrug">+ 添加药品</el-button>
             </el-tab-pane>
           </el-tabs>
         </template>
@@ -101,14 +172,30 @@
         </div>
       </main>
     </div>
+
+    <DoctorAiAssistDialog
+      v-model:visible="aiVisible"
+      v-model:input="aiInput"
+      :patient="aiPatient"
+      :messages="aiMessages"
+      :loading="aiLoading"
+      :disclaimer="aiDisclaimer"
+      :demo-mode="aiDemoMode"
+      @send="onAiSend"
+      @close="closeAiAssist"
+    />
   </PageContainer>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { patientApi } from '@/api'
+import { patientApi, serviceApi } from '@/api'
 import { useDictStore } from '@/stores/dict'
+import DoctorAiAssistDialog from '@/components/DoctorAiAssistDialog.vue'
+import { useDoctorAiAssist } from '@/composables/useDoctorAiAssist'
+
+const DEFAULT_EXAMS = ['血常规', '尿常规', 'X光胸片', 'B超', '心电图', 'CT']
 
 const dictStore = useDictStore()
 const consultationStatusOptions = computed(() =>
@@ -124,7 +211,29 @@ const tableData = ref([])
 const total = ref(0)
 const activePatient = ref(null)
 const activeTab = ref('record')
-const examOptions = ['血常规', '尿常规', 'X光胸片', 'B超', '心电图', 'CT']
+const lockLevel = ref('none')
+const lockReason = ref('')
+const recordLoading = ref(false)
+const examOptions = ref([...DEFAULT_EXAMS])
+
+const isLocked = computed(() => lockLevel.value !== 'none')
+
+const canUseAiAssist = computed(
+  () => activePatient.value?.status === 1 && lockLevel.value === 'none'
+)
+
+const {
+  visible: aiVisible,
+  patient: aiPatient,
+  messages: aiMessages,
+  loading: aiLoading,
+  input: aiInput,
+  disclaimer: aiDisclaimer,
+  demoMode: aiDemoMode,
+  open: openAiAssist,
+  close: closeAiAssist,
+  send: sendAiAssist
+} = useDoctorAiAssist()
 
 const query = reactive({ keyword: '', status: 0, page: 1, pageSize: 10 })
 
@@ -133,17 +242,76 @@ const consultForm = reactive({
   presentIllness: '',
   diagnosis: '',
   exams: [],
+  customExams: [{ name: '' }],
   examNote: '',
-  prescription: ''
+  drugs: [{ name: '', qty: 1, usage: '' }]
 })
 
-function resetConsultForm(patient) {
-  consultForm.chiefComplaint = patient?.chiefComplaint || ''
-  consultForm.presentIllness = ''
-  consultForm.diagnosis = patient?.diagnosis || ''
-  consultForm.exams = []
-  consultForm.examNote = ''
-  consultForm.prescription = patient?.prescription || ''
+function addDrug() {
+  consultForm.drugs.push({ name: '', qty: 1, usage: '' })
+}
+
+function addCustomExam() {
+  consultForm.customExams.push({ name: '' })
+}
+
+function removeCustomExam(idx) {
+  consultForm.customExams.splice(idx, 1)
+}
+
+function collectExamNames() {
+  const preset = consultForm.exams.filter(Boolean)
+  const custom = consultForm.customExams.map((e) => e.name?.trim()).filter(Boolean)
+  return [...new Set([...preset, ...custom])]
+}
+
+function applyExamList(examNames = []) {
+  const presetSet = new Set(examOptions.value)
+  const checked = []
+  const custom = []
+  for (const name of examNames) {
+    const n = String(name).trim()
+    if (!n) continue
+    if (presetSet.has(n)) checked.push(n)
+    else custom.push({ name: n })
+  }
+  consultForm.exams = checked
+  consultForm.customExams = custom.length ? custom : [{ name: '' }]
+}
+
+function removeDrug(idx) {
+  consultForm.drugs.splice(idx, 1)
+}
+
+function resetConsultForm(data = {}) {
+  consultForm.chiefComplaint = data.chiefComplaint || ''
+  consultForm.presentIllness = data.presentIllness || ''
+  consultForm.diagnosis = data.diagnosis || ''
+  applyExamList(Array.isArray(data.exams) ? data.exams : [])
+  consultForm.examNote = data.examNote || ''
+  if (Array.isArray(data.drugs) && data.drugs.length) {
+    consultForm.drugs = data.drugs.map((d) => ({
+      name: d.name || '',
+      qty: d.qty || 1,
+      usage: d.usage || ''
+    }))
+  } else {
+    consultForm.drugs = [{ name: '', qty: 1, usage: '' }]
+  }
+  lockLevel.value = data.lockLevel || 'none'
+  lockReason.value = data.lockReason || ''
+}
+
+async function loadConsultationRecord(patientId) {
+  recordLoading.value = true
+  try {
+    const res = await patientApi.getConsultationRecord(patientId)
+    resetConsultForm(res.data || {})
+  } catch {
+    resetConsultForm({})
+  } finally {
+    recordLoading.value = false
+  }
 }
 
 async function loadData() {
@@ -154,30 +322,45 @@ async function loadData() {
     total.value = res.data.total
     if (activePatient.value) {
       const updated = tableData.value.find((p) => p.id === activePatient.value.id)
-      if (updated) activePatient.value = updated
+      if (updated) {
+        activePatient.value = updated
+        if (updated.status === 2) {
+          await loadConsultationRecord(updated.id)
+        }
+      }
     }
   } finally {
     loading.value = false
   }
 }
 
-function selectPatient(row) {
+async function selectPatient(row) {
   activePatient.value = row
-  resetConsultForm(row)
-  if (row.status === 0) startConsultation(row)
+  if (row.status === 2) {
+    await loadConsultationRecord(row.id)
+    return
+  }
+  resetConsultForm({})
+  if (row.status === 0) {
+    startConsultation(row)
+  }
 }
 
 async function startConsultation(row) {
   if (row.status !== 0) {
     activePatient.value = row
-    resetConsultForm(row)
+    if (row.status === 2) {
+      await loadConsultationRecord(row.id)
+    } else {
+      resetConsultForm({})
+    }
     return
   }
   await ElMessageBox.confirm(`确认为患者「${row.name}」开始就诊？`, '开始就诊', { type: 'info' })
   await patientApi.startConsultation(row.id)
   ElMessage.success('已开始就诊')
   activePatient.value = { ...row, status: 1 }
-  resetConsultForm(activePatient.value)
+  resetConsultForm({})
   loadData()
 }
 
@@ -187,10 +370,14 @@ async function finishConsultation() {
   try {
     await patientApi.finishConsultation(activePatient.value.id, {
       chiefComplaint: consultForm.chiefComplaint,
+      presentIllness: consultForm.presentIllness,
       diagnosis: consultForm.diagnosis,
-      prescription: consultForm.prescription
+      examNote: consultForm.examNote,
+      exams: collectExamNames(),
+      drugs: consultForm.drugs.filter((d) => d.name?.trim())
     })
-    ElMessage.success('就诊已完成')
+    ElMessage.success('就诊已完成，医嘱已提交护士确认计价')
+    closeAiAssist()
     activePatient.value = null
     query.status = 0
     loadData()
@@ -199,7 +386,40 @@ async function finishConsultation() {
   }
 }
 
-onMounted(loadData)
+async function onOpenAiAssist() {
+  if (!activePatient.value) return
+  try {
+    await openAiAssist(activePatient.value, consultForm, collectExamNames)
+  } catch (e) {
+    ElMessage.error(e?.message || 'AI 临床辅助失败')
+  }
+}
+
+async function onAiSend(text) {
+  try {
+    await sendAiAssist(text)
+  } catch (e) {
+    ElMessage.error(e?.message || 'AI 回复失败')
+  }
+}
+
+async function loadExamOptions() {
+  try {
+    const res = await serviceApi.list({ pageSize: 100, status: 1 })
+    const fromApi = (res.data?.list ?? [])
+      .filter((s) => !s.category || s.category.includes('检查'))
+      .map((s) => s.serviceName)
+      .filter(Boolean)
+    examOptions.value = [...new Set([...DEFAULT_EXAMS, ...fromApi])]
+  } catch {
+    examOptions.value = [...DEFAULT_EXAMS]
+  }
+}
+
+onMounted(() => {
+  loadExamOptions()
+  loadData()
+})
 </script>
 
 <style scoped>
@@ -290,12 +510,81 @@ onMounted(loadData)
 }
 .workspace-header h3 { font-size: 18px; margin-bottom: 4px; }
 .workspace-header p { font-size: 13px; color: var(--feishu-text-secondary); }
+.workspace-header__actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.ai-assist-btn {
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  border: none;
+  color: #fff;
+}
+.ai-assist-btn:hover,
+.ai-assist-btn:focus {
+  background: linear-gradient(135deg, #6d28d9, #9333ea);
+  color: #fff;
+}
 .workspace-tabs :deep(.el-tabs__content) { padding-top: 16px; }
 .workspace-form { max-width: 720px; }
+.workspace-lock-alert { margin-bottom: 16px; }
+.field-locked :deep(.el-textarea__inner),
+.field-locked :deep(.el-input__inner) {
+  background: var(--feishu-bg-sub, #f5f7fa);
+  color: var(--feishu-text-primary, #303133);
+  cursor: default;
+}
+.is-semi-locked :deep(.el-tabs__content) {
+  border: 1px dashed #e6a23c;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fffbf0;
+}
+.is-full-locked :deep(.el-tabs__content) {
+  border: 1px solid #67c23a;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f0f9eb;
+}
 .workspace-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 400px;
+}
+.form-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--feishu-text-tertiary);
+}
+.drug-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.exam-section {
+  margin-bottom: 16px;
+}
+.exam-section__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--feishu-text-secondary);
+}
+.exam-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.custom-exam-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+  max-width: 560px;
 }
 </style>

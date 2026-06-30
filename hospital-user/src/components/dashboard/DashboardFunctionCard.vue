@@ -22,7 +22,7 @@ import { ChevronRight } from 'lucide-vue-next'
 defineProps({
   title: { type: String, required: true },
   description: { type: String, default: '' },
-  icon: { type: Object, required: true },
+  icon: { type: [Object, Function], required: true },
   iconBg: { type: String, default: 'var(--dash-icon-bg, #f4f4f5)' },
   auth: { type: Boolean, default: false },
   loggedIn: { type: Boolean, default: true }

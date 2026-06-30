@@ -3,12 +3,19 @@
     <FlowBar :steps="flowSteps" :current="currentFlow" />
 
     <view class="container">
+      <view v-if="deptLoading && !departments.length" class="dept-state">加载科室中…</view>
+      <view v-else-if="deptError" class="dept-state dept-state--error">
+        <text>{{ deptError }}</text>
+        <button class="retry-btn" size="mini" @click="refreshDepartments">重新加载</button>
+      </view>
+      <template v-else>
       <DoctorSelect
         :departments="departments"
         :doctors="doctors"
         :loading="loadingDoctors"
         :selected-dept="form.department"
         :selected-doctor-id="form.doctorId"
+        :show-remaining="!isRegisterMode"
         @select-dept="selectDept"
         @select-doctor="selectDoctor"
       />
@@ -64,6 +71,7 @@
         :loading="submitting"
         @click="openPreview"
       >下一步 · 确认{{ isRegisterMode ? '挂号' : '预约' }}</button>
+      </template>
     </view>
 
     <view v-if="showPreview" class="preview-mask" @click="showPreview = false">
@@ -123,7 +131,7 @@
         <view class="feedback-icon">✓</view>
         <text class="feedback-title">{{ isRegisterMode ? '挂号成功' : '预约成功' }}</text>
         <text class="feedback-desc">
-          {{ isRegisterMode ? '请尽快完成缴费，以免号源释放' : '请按时到院就诊，可在「我的预约」查看详情' }}
+          {{ isRegisterMode ? '请完成缴费以锁定号源，未缴费不影响时段余量' : '请按时到院就诊，可在「我的预约」查看详情' }}
         </text>
         <view class="feedback-detail">
           <view v-if="!isRegisterMode && resultNo" class="feedback-row">
@@ -157,15 +165,17 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import TabBar from '@/components/TabBar.vue'
 import FlowBar from '@/components/FlowBar.vue'
 import DoctorSelect from '@/components/DoctorSelect.vue'
 import ScheduleTimeline from '@/components/ScheduleTimeline.vue'
 import { mpApi } from '@/api'
-import { mapDeptList } from '@/utils/deptIcon'
+import { mapDeptList, sumDateRemaining } from '@/utils/deptIcon'
 import { useDepartments } from '@/composables/useDepartments'
 import { checkLogin, navigateToLogin } from '@/utils/request'
+import { safeNavigateTo } from '@/utils/nav'
+import { formatLocalDate, markSlotsStale, clearSlotsStale, SLOT_REFRESH_KEY } from '@/utils/slotRefresh'
 
 const flowSteps = [
   { key: 'doctor', label: '选医生' },
@@ -174,8 +184,8 @@ const flowSteps = [
   { key: 'feedback', label: '反馈' }
 ]
 
-const todayStr = new Date().toISOString().slice(0, 10)
-const { departments, load: loadDepartments } = useDepartments()
+const todayStr = formatLocalDate()
+const { departments, loading: deptLoading, error: deptError, load: loadDepartments, refresh: refreshDepartments } = useDepartments()
 const doctors = ref([])
 const scheduleDates = ref([])
 const loadingDoctors = ref(false)
@@ -211,7 +221,7 @@ const fee = computed(() => registerFeeMap.value[form.registerType] ?? 10)
 
 async function loadRegisterTypes() {
   try {
-    const res = await mpApi.registerTypes()
+    const res = await mpApi.registerTypes({ silent: true })
     const list = res.data || []
     if (list.length) {
       registerTypes.value = list.map((t) => t.value || t.label)
@@ -246,6 +256,17 @@ onLoad(async (options) => {
   }
 })
 
+onShow(() => {
+  if (uni.getStorageSync(SLOT_REFRESH_KEY)) {
+    clearSlotsStale()
+    if (form.doctorId && form.department) reloadAvailability()
+    return
+  }
+  if (form.doctorId && form.department) {
+    reloadAvailability()
+  }
+})
+
 async function loadPatientInfo() {
   try {
     const res = await mpApi.patientInfo()
@@ -261,6 +282,21 @@ async function loadPatientInfo() {
   }
 }
 
+function clearDoctorRemaining() {
+  doctors.value = doctors.value.map((d) => ({ ...d, remaining: null }))
+}
+
+async function patchDoctorRemaining(doctorId, dates, dateStr) {
+  if (isRegisterMode.value) {
+    clearDoctorRemaining()
+    return
+  }
+  const remaining = sumDateRemaining(dates, dateStr || form.visitDate)
+  doctors.value = doctors.value.map((d) =>
+    d.id === doctorId ? { ...d, remaining } : d
+  )
+}
+
 async function selectDept(name) {
   if (form.department === name) return
   form.department = name
@@ -271,9 +307,32 @@ async function selectDept(name) {
   doctors.value = []
   try {
     const res = await mpApi.doctors({ department: name })
-    doctors.value = res.data.list
+    doctors.value = (res.data?.list || []).map((d) => ({ ...d, remaining: null }))
   } finally {
     loadingDoctors.value = false
+  }
+}
+
+async function reloadAvailability() {
+  if (!form.department || !form.doctorId) return
+  const keepDate = form.visitDate
+  const keepSlot = form.timeSlot
+  loadingSchedule.value = true
+  try {
+    const schedRes = await mpApi.appointmentSchedule({ doctorId: form.doctorId })
+    scheduleDates.value = schedRes.data?.dates || []
+    patchDoctorRemaining(form.doctorId, scheduleDates.value, keepDate)
+    const day = scheduleDates.value.find((d) => d.date === keepDate)
+    if (day) {
+      form.visitDate = keepDate
+      const slot = day.slots.find((s) => s.timeSlot === keepSlot && s.available)
+      form.timeSlot = slot ? keepSlot : (day.slots.find((s) => s.available)?.timeSlot || '')
+    } else {
+      const firstAvailable = scheduleDates.value.find((d) => d.slots.some((s) => s.available))
+      if (firstAvailable) selectDate(firstAvailable)
+    }
+  } finally {
+    loadingSchedule.value = false
   }
 }
 
@@ -286,7 +345,11 @@ async function selectDoctor(doc) {
     const res = await mpApi.appointmentSchedule({ doctorId: doc.id })
     scheduleDates.value = res.data.dates
     const firstAvailable = scheduleDates.value.find((d) => d.slots.some((s) => s.available))
-    if (firstAvailable) selectDate(firstAvailable)
+    if (firstAvailable) {
+      selectDate(firstAvailable)
+    } else {
+      patchDoctorRemaining(doc.id, scheduleDates.value)
+    }
   } finally {
     loadingSchedule.value = false
   }
@@ -297,6 +360,11 @@ function selectDate(day) {
   form.timeSlot = ''
   const firstSlot = day.slots.find((s) => s.available)
   if (firstSlot) form.timeSlot = firstSlot.timeSlot
+  if (day.date === todayStr) {
+    clearDoctorRemaining()
+  } else {
+    patchDoctorRemaining(form.doctorId, scheduleDates.value, day.date)
+  }
 }
 
 function selectSlot(slot) {
@@ -310,6 +378,7 @@ function resetSchedule() {
 }
 
 function openPreview() {
+  if (submitting.value) return
   if (!checkLogin()) { navigateToLogin(); return }
   if (!form.doctorId) { uni.showToast({ title: '请选择医生', icon: 'none' }); return }
   if (!form.timeSlot) { uni.showToast({ title: '请选择就诊时间', icon: 'none' }); return }
@@ -318,28 +387,39 @@ function openPreview() {
 }
 
 async function confirmSubmit() {
+  if (submitting.value) return
   submitting.value = true
   try {
     if (isRegisterMode.value) {
       await mpApi.register({
         department: form.department,
+        doctorId: form.doctorId,
         doctorName: form.doctorName,
         registerType: form.registerType,
         patientName: form.patientName,
-        fee: fee.value
+        fee: fee.value,
+        timeSlot: form.timeSlot
       })
     } else {
       const res = await mpApi.appointment({
         department: form.department,
+        doctorId: form.doctorId,
         doctorName: form.doctorName,
         appointmentDate: form.visitDate,
         timeSlot: form.timeSlot,
         patientName: form.patientName
       })
-      resultNo.value = res.data?.appointmentNo || `YY${Date.now()}`
+      resultNo.value = res.data?.appointmentNo || ''
+      if (!resultNo.value) {
+        uni.showToast({ title: '预约未入库，请确认已登录', icon: 'none' })
+        return
+      }
+      await reloadAvailability()
     }
     showPreview.value = false
     showFeedback.value = true
+  } catch {
+    /* request.js 已 toast */
   } finally {
     submitting.value = false
   }
@@ -358,7 +438,9 @@ function goMyAppointment() {
 function closeFeedback() {
   showFeedback.value = false
   if (isRegisterMode.value) {
-    uni.navigateTo({ url: '/pages/mine/my-register' })
+    safeNavigateTo('/pages/mine/my-register')
+  } else {
+    reloadAvailability()
   }
 }
 </script>
@@ -604,5 +686,27 @@ function closeFeedback() {
   font-size: 26rpx;
   color: #8f959e;
   margin-top: 24rpx;
+}
+
+.dept-state {
+  text-align: center;
+  color: #909399;
+  padding: 48rpx 0;
+  font-size: 28rpx;
+}
+
+.dept-state--error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  color: #f56c6c;
+}
+
+.retry-btn {
+  background: #3370ff;
+  color: #fff;
+  border: none;
+  border-radius: 32rpx;
 }
 </style>

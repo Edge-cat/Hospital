@@ -7,7 +7,11 @@ import { reportOperation } from '@/utils/operationReport'
 
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || '/api',
-  timeout: 15000
+  timeout: 15000,
+  headers: {
+    Accept: 'application/json;charset=UTF-8'
+  },
+  responseType: 'json'
 })
 
 request.interceptors.request.use((config) => {
@@ -15,6 +19,7 @@ request.interceptors.request.use((config) => {
   if (userStore.token) {
     config.headers.Authorization = `Bearer ${userStore.token}`
   }
+  config.headers['X-Audit-Client'] = 'user'
   return config
 })
 

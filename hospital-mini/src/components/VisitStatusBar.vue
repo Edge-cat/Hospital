@@ -25,6 +25,7 @@
 <script setup>
 import { computed } from 'vue'
 import MiniIcon from './MiniIcon.vue'
+import { safeNavigateTo } from '@/utils/nav'
 
 const props = defineProps({
   visit: { type: Object, default: null }
@@ -42,7 +43,7 @@ const steps = computed(() => {
 
 function goDetail() {
   if (!props.visit?.path) return
-  uni.navigateTo({ url: props.visit.path })
+  safeNavigateTo(props.visit.path)
 }
 </script>
 

@@ -390,6 +390,24 @@ Mock.mock(/\/api\/auth\/login/, 'post', (options) => {
   }
 })
 
+Mock.mock(/\/api\/auth\/register/, 'post', (options) => {
+  const body = JSON.parse(options.body || '{}')
+  return {
+    code: 200,
+    message: '注册成功',
+    data: {
+      token: 'user-token-' + Random.string(16),
+      user: {
+        id: Random.integer(100, 999),
+        name: body.name || '新用户',
+        role: 'patient',
+        roleLabel: '患者',
+        phone: body.phone
+      }
+    }
+  }
+})
+
 Mock.mock(/\/api\/patient\/info/, 'get', () => ({
   code: 200,
   data: { ...PATIENT_PROFILE }

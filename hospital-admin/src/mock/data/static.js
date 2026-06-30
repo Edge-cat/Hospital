@@ -15,6 +15,13 @@ export const COMMON_META = {
   options: {
     departments: opt(['内科', '外科', '儿科', '骨科', '眼科', '皮肤科', '口腔科']),
     roles: opt(['系统管理员', '医生', '护士', '财务', '药房']),
+    staffRoles: [
+      { label: '系统管理员', value: 'admin' },
+      { label: '医生', value: 'doctor' },
+      { label: '护士', value: 'nurse' },
+      { label: '财务', value: 'finance' },
+      { label: '药房', value: 'pharmacy' }
+    ],
     registerTypes: opt(['普通号', '专家号', '急诊号']),
     payMethods: opt(['现金', '微信', '支付宝', '银行卡']),
     paymentItems: opt(['挂号费', '检查费', '药品费', '住院押金']),

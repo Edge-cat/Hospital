@@ -47,7 +47,7 @@
                   <text class="doctor-title-tag">{{ doc.title }}</text>
                 </view>
                 <text class="doctor-specialty">擅长：{{ doc.specialty }}</text>
-                <view v-if="showRemaining" class="doctor-footer">
+                <view v-if="showRemaining && doc.remaining != null" class="doctor-footer">
                   <text
                     class="remain-badge"
                     :class="doc.remaining > 0 ? 'has' : 'none'"

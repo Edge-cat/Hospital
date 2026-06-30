@@ -15,9 +15,11 @@ export function getDeptVisual(name) {
 
 /** 号源余量状态 */
 export function slotStatus(slots) {
-  if (slots === 0) return { label: '今日已满', type: 'danger' }
-  if (slots < 10) return { label: `今日余${slots}号`, type: 'warning' }
-  return { label: `今日余${slots}号`, type: 'success' }
+  const n = Number(slots)
+  if (!Number.isFinite(n)) return { label: '号源查询中', type: 'info' }
+  if (n === 0) return { label: '今日已满', type: 'danger' }
+  if (n < 10) return { label: `今日余${n}号`, type: 'warning' }
+  return { label: `今日余${n}号`, type: 'success' }
 }
 
 /** 候诊等待状态 */

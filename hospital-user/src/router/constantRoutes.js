@@ -11,6 +11,12 @@ export const constantRoutes = [
     meta: { title: '登录', public: true }
   },
   {
+    path: '/signup',
+    name: 'Signup',
+    component: () => import('@/views/signup/index.vue'),
+    meta: { title: '注册', public: true }
+  },
+  {
     path: '/',
     name: 'Layout',
     component: () => import('@/layout/UserLayout.vue'),
@@ -19,4 +25,4 @@ export const constantRoutes = [
   }
 ]
 
-export const ROUTE_WHITE_LIST = ['/login']
+export const ROUTE_WHITE_LIST = ['/login', '/signup']

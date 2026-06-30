@@ -3,6 +3,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { clearPatientProfileCache } from '@/composables/usePatientProfile'
 
 const TOKEN_KEY = 'his_user_token'
 const USER_KEY = 'his_user_info'
@@ -17,6 +18,7 @@ export const useUserStore = defineStore('user', () => {
   const role = computed(() => userInfo.value?.role || 'patient')
 
   function login(data) {
+    clearPatientProfileCache()
     token.value = data.token
     userInfo.value = data.user
     localStorage.setItem(TOKEN_KEY, data.token)
@@ -26,6 +28,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function logout() {
+    clearPatientProfileCache()
     token.value = ''
     userInfo.value = null
     localStorage.removeItem(TOKEN_KEY)

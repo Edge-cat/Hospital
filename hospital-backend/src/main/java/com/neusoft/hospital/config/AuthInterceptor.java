@@ -30,7 +30,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth/login") || path.startsWith("/api/auth/wx-login") || path.startsWith("/api/common/")) {
+        if (path.startsWith("/api/auth/login") || path.startsWith("/api/auth/register")
+                || path.startsWith("/api/auth/wx-login") || path.startsWith("/api/common/")) {
             return true;
         }
         String auth = request.getHeader("Authorization");
@@ -52,6 +53,11 @@ public class AuthInterceptor implements HandlerInterceptor {
         UserContext.set(user);
 
         String role = user.getRole();
+        if (HttpMethod.GET.matches(request.getMethod())
+                && (path.startsWith("/api/admin/log/operation") || path.startsWith("/api/admin/console/"))
+                && STAFF_ROLES.contains(role)) {
+            return true;
+        }
         if (path.startsWith("/api/admin/") && !ADMIN_ROLES.contains(role)) {
             writeError(response, HttpStatus.FORBIDDEN, 403, "无管理端访问权限");
             return false;

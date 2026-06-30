@@ -38,13 +38,16 @@
         >{{ item.cancelText }}</button>
       </view>
     </view>
+    <PageNav variant="footer" />
   </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { mpApi } from '@/api'
+import PageNav from '@/components/PageNav.vue'
 import { registerStatusMap, appointmentStatusMap, checkLogin, navigateToLogin } from '@/utils/request'
+import { markSlotsStale } from '@/utils/slotRefresh'
 
 const activeTab = ref('all')
 const list = ref([])
@@ -141,7 +144,8 @@ function handleCancel(item) {
       if (!res.confirm) return
       if (isRegister) await mpApi.cancelRegister(item.id)
       else await mpApi.cancelAppointment(item.id)
-      uni.showToast({ title: isRegister ? '退号成功' : '已取消', icon: 'success' })
+      markSlotsStale()
+      uni.showToast({ title: isRegister ? '退号成功，号源已释放' : '已取消，号源已释放', icon: 'success' })
       loadData()
     }
   })

@@ -9,8 +9,8 @@ export const ROLE_QUICK_LINKS = {
     'HrSchedule', 'HrService', 'BusinessNotice'
   ],
   nurse: [
-    'PatientInfo', 'BusinessRegister', 'BusinessAppointment', 'BusinessPayment',
-    'PatientConsultation', 'PatientSearch', 'BusinessBed', 'HrSchedule'
+    'PatientBillingConfirm', 'PatientInfo', 'BusinessRegister', 'BusinessAppointment', 'BusinessPayment',
+    'PatientSearch', 'BusinessBed', 'HrSchedule'
   ]
 }
 

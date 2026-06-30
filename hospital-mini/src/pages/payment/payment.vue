@@ -1,16 +1,54 @@
 <template>
   <view class="page">
-    <view class="summary-bar" v-if="tab === 'pending' && pendingTotal > 0">
+    <view class="summary-bar" v-if="tab === 'pending' && summary.count > 0">
       <view class="summary-left">
         <text class="summary-label">待缴合计</text>
-        <text class="summary-amount">¥{{ pendingTotal.toFixed(2) }}</text>
+        <text class="summary-amount">¥{{ summary.totalAmount.toFixed(2) }}</text>
+        <text class="summary-count-inline">共 {{ summary.count }} 笔待缴</text>
       </view>
-      <text class="summary-count">{{ list.length }} 笔待缴</text>
+      <button
+        v-if="selectedIds.length"
+        class="batch-pay-btn"
+        :loading="payLocked"
+        @click="handleBatchPay"
+      >
+        批量支付 ¥{{ selectedAmount.toFixed(2) }}
+      </button>
     </view>
 
     <view class="tabs">
       <view class="tab" :class="{ active: tab === 'pending' }" @click="switchTab('pending')">待缴费</view>
       <view class="tab" :class="{ active: tab === 'paid' }" @click="switchTab('paid')">已缴费</view>
+    </view>
+
+    <view v-if="tab === 'pending'" class="toolbar">
+      <text class="toolbar-label">支付渠道</text>
+      <view class="method-chips">
+        <text
+          v-for="m in PAY_METHODS"
+          :key="m"
+          class="method-chip"
+          :class="{ active: payMethod === m }"
+          @click="payMethod = m"
+        >{{ m }}</text>
+      </view>
+    </view>
+
+    <view v-if="tab === 'pending' && list.length" class="select-bar">
+      <text class="select-all" @click="toggleSelectAll">{{ allSelected ? '取消全选' : '全选本页' }}</text>
+      <text v-if="selectedIds.length" class="select-hint">已选 {{ selectedIds.length }} 笔</text>
+    </view>
+
+    <view v-if="tab === 'paid'" class="toolbar filter-bar">
+      <text class="toolbar-label">支付时间</text>
+      <picker mode="date" :value="startDate" @change="onStartDateChange">
+        <text class="date-chip">{{ startDate || '开始日期' }}</text>
+      </picker>
+      <text class="date-sep">至</text>
+      <picker mode="date" :value="endDate" @change="onEndDateChange">
+        <text class="date-chip">{{ endDate || '结束日期' }}</text>
+      </picker>
+      <text v-if="startDate || endDate" class="filter-reset" @click="clearDateFilter">重置</text>
     </view>
 
     <view class="container">
@@ -20,11 +58,20 @@
         v-for="item in list"
         :key="item.id"
         class="bill-card"
-        :class="[`bill-card--${item.itemType || 'default'}`]"
+        :class="[
+          `bill-card--${item.itemType || 'default'}`,
+          { 'bill-card--overdue': isOverdue(item) }
+        ]"
       >
         <view class="bill-accent" />
 
         <view class="bill-header">
+          <view
+            v-if="tab === 'pending'"
+            class="bill-check"
+            :class="{ checked: selectedIds.includes(item.id) }"
+            @click="toggleSelect(item.id)"
+          />
           <view class="bill-icon-wrap">
             <text class="bill-icon">{{ itemTypeIcon(item.itemType) }}</text>
           </view>
@@ -35,11 +82,17 @@
           <text class="tag" :class="paymentStatusMap[item.status]?.class">
             {{ paymentStatusMap[item.status]?.label }}
           </text>
+          <text v-if="isOverdue(item)" class="tag tag-danger">已逾期</text>
         </view>
 
         <view class="bill-amount-row">
-          <text class="bill-amount-label">应付金额</text>
+          <text class="bill-amount-label">{{ item.status === 0 ? '应付金额' : '实付金额' }}</text>
           <text class="bill-amount">¥{{ item.amount?.toFixed(2) }}</text>
+        </view>
+
+        <view v-if="item.status === 0 && item.dueDate" class="due-row">
+          <text class="due-label">缴费截止</text>
+          <text class="due-value" :class="{ overdue: isOverdue(item) }">{{ item.dueDate }}</text>
         </view>
 
         <view class="breakdown-section">
@@ -72,7 +125,12 @@
             <text class="advice-label">医嘱说明</text>
             <text class="advice-text">{{ item.advice }}</text>
           </view>
-          <button class="pay-btn" :loading="payingId === item.id" @click="handlePay(item)">
+          <button
+            class="pay-btn"
+            :loading="payingId === item.id"
+            :disabled="payLocked && payingId !== item.id"
+            @click="handlePay(item)"
+          >
             立即支付 ¥{{ item.amount?.toFixed(2) }}
           </button>
         </template>
@@ -114,36 +172,133 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { onLoad, onShow, onHide } from '@dcloudio/uni-app'
 import TabBar from '@/components/TabBar.vue'
 import { mpApi } from '@/api'
 import { paymentStatusMap, checkLogin, navigateToLogin } from '@/utils/request'
+import { markSlotsStale } from '@/utils/slotRefresh'
+import { PAY_METHODS } from '@/constants'
 
 const tab = ref('pending')
 const list = ref([])
 const detailItem = ref(null)
 const payingId = ref(null)
+const payLocked = ref(false)
+const payMethod = ref('微信')
+const selectedIds = ref([])
+const summary = ref({ count: 0, totalAmount: 0 })
+const startDate = ref('')
+const endDate = ref('')
+let pollTimer = null
 
-const pendingTotal = computed(() =>
-  list.value.reduce((sum, item) => sum + (item.amount || 0), 0)
+const selectedAmount = computed(() =>
+  list.value
+    .filter((item) => selectedIds.value.includes(item.id))
+    .reduce((sum, item) => sum + (item.amount || 0), 0)
 )
 
-onMounted(() => loadData())
+const allSelected = computed(
+  () => list.value.length > 0 && selectedIds.value.length === list.value.length
+)
+
+onMounted(() => {
+  if (checkLogin()) loadData()
+})
+
+onShow(() => {
+  if (checkLogin()) {
+    loadData()
+    startPolling()
+  }
+})
+
+onHide(() => stopPolling())
 
 onLoad((options) => {
   if (options?.tab === 'paid') tab.value = 'paid'
 })
 
+async function loadSummary() {
+  if (tab.value !== 'pending') return
+  try {
+    const res = await mpApi.paymentSummary()
+    summary.value = res.data || { count: 0, totalAmount: 0 }
+  } catch {
+    summary.value = {
+      count: list.value.length,
+      totalAmount: list.value.reduce((s, i) => s + (i.amount || 0), 0)
+    }
+  }
+}
+
 async function loadData() {
   const status = tab.value === 'pending' ? 0 : 1
-  const res = await mpApi.paymentList({ status })
-  list.value = res.data.list
+  const params = { status, pageSize: 50 }
+  if (tab.value === 'paid' && startDate.value && endDate.value) {
+    params.startDate = startDate.value
+    params.endDate = endDate.value
+  }
+  const res = await mpApi.paymentList(params)
+  list.value = res.data?.list || []
+  selectedIds.value = []
+  if (tab.value === 'pending') await loadSummary()
 }
 
 function switchTab(t) {
   tab.value = t
+  startDate.value = ''
+  endDate.value = ''
   loadData()
+}
+
+function isOverdue(item) {
+  if (item.status !== 0 || !item.dueDate) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return new Date(item.dueDate) < today
+}
+
+function toggleSelect(id) {
+  if (selectedIds.value.includes(id)) {
+    selectedIds.value = selectedIds.value.filter((v) => v !== id)
+  } else {
+    selectedIds.value = [...selectedIds.value, id]
+  }
+}
+
+function toggleSelectAll() {
+  selectedIds.value = allSelected.value ? [] : list.value.map((i) => i.id)
+}
+
+function onStartDateChange(e) {
+  startDate.value = e.detail.value
+  if (startDate.value && endDate.value) loadData()
+}
+
+function onEndDateChange(e) {
+  endDate.value = e.detail.value
+  if (startDate.value && endDate.value) loadData()
+}
+
+function clearDateFilter() {
+  startDate.value = ''
+  endDate.value = ''
+  loadData()
+}
+
+function startPolling() {
+  stopPolling()
+  pollTimer = setInterval(() => {
+    if (tab.value === 'pending' && !payLocked.value) loadData()
+  }, 30000)
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
 }
 
 function itemTypeIcon(type) {
@@ -165,22 +320,49 @@ function goResult(item) {
 
 async function handlePay(item) {
   if (!checkLogin()) { navigateToLogin(); return }
+  if (payLocked.value) return
 
   uni.showModal({
     title: '确认支付',
-    content: `支付 ${item.itemName} ¥${item.amount.toFixed(2)}？`,
+    content: `使用「${payMethod.value}」支付 ${item.itemName} ¥${item.amount.toFixed(2)}？`,
     success: async (res) => {
       if (!res.confirm) return
+      payLocked.value = true
       payingId.value = item.id
       try {
-        const payRes = await mpApi.payment({ id: item.id, payMethod: '微信' })
+        const payRes = await mpApi.payment({ id: item.id, payMethod: payMethod.value })
+        markSlotsStale()
+        uni.showToast({ title: '支付成功', icon: 'success' })
         const voucher = payRes.data || item
         uni.navigateTo({
           url: `/pages/payment/result?id=${item.id}&voucherNo=${voucher.voucherNo || ''}`
         })
-        loadData()
+        await loadData()
       } finally {
         payingId.value = null
+        setTimeout(() => { payLocked.value = false }, 800)
+      }
+    }
+  })
+}
+
+async function handleBatchPay() {
+  if (!selectedIds.value.length || payLocked.value) return
+  if (!checkLogin()) { navigateToLogin(); return }
+
+  uni.showModal({
+    title: '批量支付确认',
+    content: `使用「${payMethod.value}」批量支付 ${selectedIds.value.length} 笔，合计 ¥${selectedAmount.value.toFixed(2)}？`,
+    success: async (res) => {
+      if (!res.confirm) return
+      payLocked.value = true
+      try {
+        await mpApi.paymentBatch({ ids: [...selectedIds.value], payMethod: payMethod.value })
+        markSlotsStale()
+        uni.showToast({ title: '批量支付成功', icon: 'success' })
+        await loadData()
+      } finally {
+        setTimeout(() => { payLocked.value = false }, 800)
       }
     }
   })
@@ -210,6 +392,147 @@ async function handlePay(item) {
   font-weight: 700;
   display: block;
   margin-top: 4rpx;
+}
+
+.summary-count-inline {
+  display: block;
+  font-size: 22rpx;
+  opacity: 0.85;
+  margin-top: 4rpx;
+}
+
+.batch-pay-btn {
+  background: #fff;
+  color: #3370ff;
+  border: none;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  padding: 0 28rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  flex-shrink: 0;
+}
+
+.batch-pay-btn::after { border: none; }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #e5e6eb;
+}
+
+.toolbar-label {
+  font-size: 24rpx;
+  color: #8f959e;
+  flex-shrink: 0;
+}
+
+.method-chips {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.method-chip {
+  padding: 8rpx 24rpx;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  color: #646a73;
+  background: #f5f6f7;
+  border: 1rpx solid #e5e6eb;
+}
+
+.method-chip.active {
+  color: #3370ff;
+  background: #e8f3ff;
+  border-color: #3370ff;
+}
+
+.select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 24rpx;
+  background: #fafbfc;
+  font-size: 24rpx;
+}
+
+.select-all {
+  color: #3370ff;
+}
+
+.select-hint {
+  color: #8f959e;
+}
+
+.filter-bar .date-chip {
+  padding: 8rpx 16rpx;
+  background: #f5f6f7;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  color: #646a73;
+}
+
+.date-sep {
+  font-size: 24rpx;
+  color: #8f959e;
+}
+
+.filter-reset {
+  font-size: 24rpx;
+  color: #3370ff;
+  margin-left: auto;
+}
+
+.bill-card--overdue {
+  border-color: #fbc4c4;
+  background: #fffafa;
+}
+
+.bill-check {
+  width: 36rpx;
+  height: 36rpx;
+  border: 2rpx solid #c9cdd4;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+  margin-top: 20rpx;
+}
+
+.bill-check.checked {
+  background: #3370ff;
+  border-color: #3370ff;
+}
+
+.bill-check.checked::after {
+  content: '✓';
+  color: #fff;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.due-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0 16rpx;
+  font-size: 24rpx;
+}
+
+.due-label { color: #8f959e; }
+.due-value { color: #646a73; }
+.due-value.overdue { color: #f54a45; font-weight: 600; }
+
+.tag-danger {
+  background: #fef0f0;
+  color: #f56c6c;
+  margin-left: 8rpx;
 }
 
 .summary-count {

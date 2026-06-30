@@ -109,25 +109,28 @@ public final class AppointmentScheduleHelper {
 
 
     private static String weekdayName(DayOfWeek day) {
-
-        return switch (day) {
-
-            case MONDAY -> "周一";
-
-            case TUESDAY -> "周二";
-
-            case WEDNESDAY -> "周三";
-
-            case THURSDAY -> "周四";
-
-            case FRIDAY -> "周五";
-
-            case SATURDAY -> "周六";
-
-            case SUNDAY -> "周日";
-
-        };
-
+        if (day == null) {
+            return "";
+        }
+        if (day == DayOfWeek.MONDAY) {
+            return "周一";
+        }
+        if (day == DayOfWeek.TUESDAY) {
+            return "周二";
+        }
+        if (day == DayOfWeek.WEDNESDAY) {
+            return "周三";
+        }
+        if (day == DayOfWeek.THURSDAY) {
+            return "周四";
+        }
+        if (day == DayOfWeek.FRIDAY) {
+            return "周五";
+        }
+        if (day == DayOfWeek.SATURDAY) {
+            return "周六";
+        }
+        return "周日";
     }
 
 }

@@ -117,6 +117,8 @@ import MiniIcon from '@/components/MiniIcon.vue'
 import VisitStatusBar from '@/components/VisitStatusBar.vue'
 import { mpApi } from '@/api'
 import { useDepartments } from '@/composables/useDepartments'
+import { checkLogin, navigateToLogin } from '@/utils/request'
+import { safeNavigateTo } from '@/utils/nav'
 
 const { departments, load: loadDepartments } = useDepartments()
 const featuredDepartments = computed(() => departments.value.slice(0, 5))
@@ -140,12 +142,12 @@ const moreServices = [
 ]
 
 const symptomHints = [
-  { keyword: '发热咳嗽', name: '发热咳嗽', desc: '推荐内科', department: '内科', deptId: 1 },
-  { keyword: '头痛头晕', name: '头痛头晕', desc: '推荐内科', department: '内科', deptId: 1 },
-  { keyword: '腹痛腹泻', name: '腹痛腹泻', desc: '推荐内科', department: '内科', deptId: 1 },
-  { keyword: '骨伤骨折', name: '骨伤骨折', desc: '推荐骨科', department: '骨科', deptId: 4 },
-  { keyword: '视力模糊', name: '视力模糊', desc: '推荐眼科', department: '眼科', deptId: 5 },
-  { keyword: '儿童发热', name: '儿童发热', desc: '推荐儿科', department: '儿科', deptId: 3 }
+  { keyword: '发热咳嗽', name: '发热咳嗽', desc: '推荐内科', department: '内科' },
+  { keyword: '头痛头晕', name: '头痛头晕', desc: '推荐内科', department: '内科' },
+  { keyword: '腹痛腹泻', name: '腹痛腹泻', desc: '推荐内科', department: '内科' },
+  { keyword: '骨伤骨折', name: '骨伤骨折', desc: '推荐骨科', department: '骨科' },
+  { keyword: '视力模糊', name: '视力模糊', desc: '推荐眼科', department: '眼科' },
+  { keyword: '儿童发热', name: '儿童发热', desc: '推荐儿科', department: '儿科' }
 ]
 
 const searchResults = computed(() => {
@@ -211,26 +213,33 @@ function onSearch() {
 function goSymptom(item) {
   showSuggestions.value = false
   searchKey.value = ''
-  const dept = departments.value.find((d) => d.id === item.deptId || d.name === item.department || d.name === item.name)
+  const dept = departments.value.find(
+    (d) => d.name === item.department || d.name === item.name || d.name?.includes(item.department)
+  )
   if (dept) {
-    uni.navigateTo({ url: `/pages/department/detail?id=${dept.id}&name=${dept.name}` })
+    safeNavigateTo(`/pages/department/detail?id=${dept.id}&name=${encodeURIComponent(dept.name)}`)
   } else {
-    uni.navigateTo({ url: '/pages/department/department' })
+    uni.showToast({ title: '未找到对应科室', icon: 'none' })
   }
 }
 
 function goPage(path) {
   showSuggestions.value = false
-  uni.navigateTo({ url: path })
+  const authPaths = ['/pages/records/records', '/pages/payment/payment']
+  if (authPaths.some((p) => path.startsWith(p)) && !checkLogin()) {
+    navigateToLogin()
+    return
+  }
+  safeNavigateTo(path)
 }
 
 function goDept(dept) {
   showSuggestions.value = false
-  uni.navigateTo({ url: `/pages/department/detail?id=${dept.id}&name=${dept.name}` })
+  safeNavigateTo(`/pages/department/detail?id=${dept.id}&name=${encodeURIComponent(dept.name)}`)
 }
 
 function goNotice(id) {
-  uni.navigateTo({ url: `/pages/notice/detail?id=${id}` })
+  safeNavigateTo(`/pages/notice/detail?id=${id}`)
 }
 </script>
 

@@ -5,6 +5,7 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import 'element-plus/dist/index.css'
 import './styles/feishu-theme.css'
+import './styles/feishu-compat.css'
 
 import App from './App.vue'
 import router from './router'

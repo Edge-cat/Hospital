@@ -1,0 +1,9 @@
+# 本地密钥（复制为 application-local.yml，勿提交 Git）
+# cp application-local.yml.example application-local.yml
+hospital:
+  ai:
+    enabled: true
+    api-key: sk-your-deepseek-api-key-here
+    base-url: https://api.deepseek.com
+    model: deepseek-chat
+    max-tokens: 1200

@@ -22,6 +22,10 @@
           </el-form-item>
           <el-button type="primary" :loading="loading" class="login-btn" @click="handleLogin">登 录</el-button>
         </el-form>
+        <p class="signup-link">
+          还没有账号？
+          <router-link to="/signup">立即注册</router-link>
+        </p>
         <div class="demo-box">
           <p class="demo-title">演示账号（密码 123456）</p>
           <button type="button" class="demo-btn" @click="fillDemo">patient · 患者账号</button>
@@ -93,7 +97,18 @@ async function handleLogin() {
 .login-card h2 { font-size: 24px; font-weight: 600; color: var(--feishu-text-primary); margin-bottom: 8px; }
 .subtitle { color: var(--feishu-text-tertiary); font-size: 14px; margin-bottom: 32px; }
 .login-btn { width: 100%; margin-top: 8px; height: 40px; }
-.demo-box { margin-top: 28px; }
+.signup-link {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--feishu-text-tertiary);
+}
+.signup-link a {
+  color: var(--feishu-primary);
+  text-decoration: none;
+}
+.signup-link a:hover { text-decoration: underline; }
+.demo-box { margin-top: 20px; }
 .demo-title { text-align: center; color: #bbbfc4; font-size: 12px; margin-bottom: 10px; }
 .demo-btn {
   width: 100%; padding: 10px; border: 1px solid var(--feishu-border-light);

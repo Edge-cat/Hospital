@@ -9,12 +9,15 @@
       <text class="notice-title">{{ item.title }}</text>
       <text class="notice-publisher">发布：{{ item.publisher }}</text>
     </view>
+    <PageNav variant="footer" />
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { mpApi } from '@/api'
+import { safeNavigateTo } from '@/utils/nav'
+import PageNav from '@/components/PageNav.vue'
 
 const list = ref([])
 
@@ -24,7 +27,7 @@ onMounted(async () => {
 })
 
 function goDetail(id) {
-  uni.navigateTo({ url: `/pages/notice/detail?id=${id}` })
+  safeNavigateTo(`/pages/notice/detail?id=${id}`)
 }
 </script>
 

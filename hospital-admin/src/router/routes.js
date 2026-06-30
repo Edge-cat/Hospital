@@ -34,7 +34,13 @@ export const asyncRoutes = [
     path: 'patient/consultation',
     name: 'PatientConsultation',
     component: () => import('@/views/patient/consultation.vue'),
-    meta: { title: '医生开始就诊', icon: 'FirstAidKit', group: '患者管理', groupIcon: 'User', roles: ['admin', 'doctor', 'nurse'] }
+    meta: { title: '医生开始就诊', icon: 'FirstAidKit', group: '患者管理', groupIcon: 'User', roles: ['admin', 'doctor'] }
+  },
+  {
+    path: 'patient/billing-confirm',
+    name: 'PatientBillingConfirm',
+    component: () => import('@/views/business/billing-confirm.vue'),
+    meta: { title: '医嘱扣费确认', icon: 'DocumentChecked', group: '患者管理', groupIcon: 'User', roles: ['admin', 'nurse'] }
   },
   // 人事管理
   {

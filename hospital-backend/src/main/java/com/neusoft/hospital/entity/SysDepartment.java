@@ -13,6 +13,8 @@ public class SysDepartment {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String name;
+    /** 科室编码（如 NK=内科） */
+    private String code;
     private Long parentId;
     private Integer sort;
     private Integer status;

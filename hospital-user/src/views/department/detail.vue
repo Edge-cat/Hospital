@@ -23,7 +23,7 @@
         </div>
 
         <el-descriptions :column="2" border size="small" class="dept-meta">
-          <el-descriptions-item label="科室编码">{{ dept.code }}</el-descriptions-item>
+          <el-descriptions-item label="科室编码">{{ dept.code || '—' }}</el-descriptions-item>
           <el-descriptions-item label="负责人">{{ dept.leader }}</el-descriptions-item>
           <el-descriptions-item label="联系电话">{{ dept.phone }}</el-descriptions-item>
         </el-descriptions>
@@ -34,7 +34,10 @@
       </el-card>
 
       <div class="doctor-toolbar">
-        <h3 class="section-title">科室医生</h3>
+        <div>
+          <h3 class="section-title">科室医生</h3>
+          <p class="section-hint">点击医生或「履历」查看个人简介</p>
+        </div>
         <el-radio-group v-model="shiftFilter" size="small">
           <el-radio-button v-for="s in SHIFT_FILTERS" :key="s.key" :value="s.key">
             {{ s.label }}
@@ -50,13 +53,19 @@
           class="doctor-card"
           :class="{ 'doctor-card--full': !hasAvailableSlots(doc, shiftFilter) }"
         >
-          <div class="doctor-head">
+          <div class="doctor-head" @click="openProfile(doc)">
             <div class="doctor-info">
-              <span class="doctor-name">{{ doc.name }}</span>
-              <el-tag size="small" type="info" effect="light">{{ doc.title }}</el-tag>
+              <div class="doctor-avatar">{{ doc.name?.charAt(0) }}</div>
+              <div>
+                <span class="doctor-name">{{ doc.name }}</span>
+                <el-tag size="small" type="info" effect="light">{{ doc.title }}</el-tag>
+              </div>
             </div>
-            <div class="slot-summary" :class="{ 'slot-summary--warn': !hasAvailableSlots(doc, shiftFilter) }">
-              {{ slotSummary(doc) }}
+            <div class="doctor-head-actions">
+              <el-button link type="primary" size="small" @click.stop="openProfile(doc)">履历</el-button>
+              <div class="slot-summary" :class="{ 'slot-summary--warn': !hasAvailableSlots(doc, shiftFilter) }">
+                {{ slotSummary(doc) }}
+              </div>
             </div>
           </div>
 
@@ -109,6 +118,14 @@
       <el-empty v-else-if="!loadingDoctors" description="该时段暂无出诊医生" :image-size="80" />
     </template>
     <el-empty v-else-if="!loading" description="科室不存在" :image-size="80" />
+
+    <DoctorProfileDrawer
+      v-model:visible="profileVisible"
+      :doctor="profileDoctor"
+      :dept-label="dept?.name || ''"
+      book-label="预约该医生"
+      @book="bookFromProfile"
+    />
   </div>
 </template>
 
@@ -124,6 +141,9 @@ import {
   slotSummary,
   hasAvailableSlots
 } from '@/constants/department'
+import { enrichDepartment } from '@/utils/deptEnrich'
+import { mapDoctorList } from '@/utils/doctorProfile'
+import DoctorProfileDrawer from '@/components/DoctorProfileDrawer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -132,6 +152,8 @@ const loadingDoctors = ref(false)
 const dept = ref(null)
 const doctors = ref([])
 const shiftFilter = ref('all')
+const profileVisible = ref(false)
+const profileDoctor = ref(null)
 
 const filteredDoctors = computed(() => filterDoctorsByShift(doctors.value, shiftFilter.value))
 
@@ -152,16 +174,27 @@ function goAppointment(doc) {
   })
 }
 
+function openProfile(doc) {
+  profileDoctor.value = doc
+  profileVisible.value = true
+}
+
+function bookFromProfile(doc) {
+  profileVisible.value = false
+  goAppointment(doc)
+}
+
 onMounted(async () => {
   loading.value = true
   try {
     const res = await userApi.departments()
-    dept.value = res.data.list.find((d) => d.id === Number(route.params.id))
+    const raw = res.data.list.find((d) => d.id === Number(route.params.id))
+    dept.value = enrichDepartment(raw)
     if (dept.value) {
       loadingDoctors.value = true
       try {
         const docRes = await userApi.doctors({ department: dept.value.name, pageSize: 50 })
-        doctors.value = docRes.data.list.filter((d) => d.status !== 0)
+        doctors.value = mapDoctorList(docRes.data.list.filter((d) => d.status !== 0))
       } finally {
         loadingDoctors.value = false
       }
@@ -229,6 +262,12 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.section-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--feishu-text-tertiary);
+}
+
 .doctor-list {
   display: flex;
   flex-direction: column;
@@ -255,12 +294,34 @@ onMounted(async () => {
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 8px;
+  cursor: pointer;
 }
 
 .doctor-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.doctor-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--feishu-primary), #66b1ff);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.doctor-head-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 .doctor-name {

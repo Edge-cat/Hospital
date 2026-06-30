@@ -25,6 +25,12 @@ public final class CommonMetaProvider {
         Map<String, Object> options = new LinkedHashMap<>();
         options.put("departments", opt("内科", "外科", "儿科", "骨科", "眼科", "皮肤科", "口腔科"));
         options.put("roles", opt("系统管理员", "医生", "护士", "财务", "药房"));
+        options.put("staffRoles", List.of(
+                Map.of("label", "系统管理员", "value", "admin"),
+                Map.of("label", "医生", "value", "doctor"),
+                Map.of("label", "护士", "value", "nurse"),
+                Map.of("label", "财务", "value", "finance"),
+                Map.of("label", "药房", "value", "pharmacy")));
         options.put("registerTypes", opt("普通号", "专家号", "急诊号"));
         options.put("payMethods", opt("现金", "微信", "支付宝", "银行卡"));
         options.put("paymentItems", opt("挂号费", "检查费", "药品费", "住院押金"));

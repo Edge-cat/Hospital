@@ -97,7 +97,18 @@
                   </p>
                   <div class="result-card__actions">
                     <el-button size="small" @click.stop="$router.push('/business/payment')">办理缴费</el-button>
-                    <el-button size="small" type="primary" @click.stop="$router.push('/patient/consultation')">开始就诊</el-button>
+                    <el-button
+                      v-if="userStore.role === 'doctor' || userStore.role === 'admin'"
+                      size="small"
+                      type="primary"
+                      @click.stop="$router.push('/patient/consultation')"
+                    >开始就诊</el-button>
+                    <el-button
+                      v-if="userStore.role === 'nurse'"
+                      size="small"
+                      type="primary"
+                      @click.stop="$router.push('/patient/billing-confirm')"
+                    >医嘱扣费</el-button>
                   </div>
                 </div>
               </el-col>
@@ -114,7 +125,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { patientApi } from '@/api'
+import { useUserStore } from '@/stores/user'
 import PatientPanoramaDrawer from '@/components/PatientPanoramaDrawer.vue'
+
+const userStore = useUserStore()
 
 const HISTORY_KEY = 'his_patient_search_history'
 const quickDepts = ['内科', '外科', '儿科', '骨科', '眼科']

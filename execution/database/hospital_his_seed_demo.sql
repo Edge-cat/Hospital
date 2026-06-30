@@ -6,11 +6,11 @@ USE hospital_his;
 SET NAMES utf8mb4;
 
 -- 子科室（树形展示）
-INSERT INTO sys_department (name, parent_id, sort, status, description) VALUES
-('心血管内科', 1, 1, 1, '内科-心血管'),
-('呼吸内科', 1, 2, 1, '内科-呼吸'),
-('普外科', 2, 1, 1, '外科-普外'),
-('创伤骨科', 4, 1, 1, '骨科-创伤');
+INSERT INTO sys_department (name, code, parent_id, sort, status, description) VALUES
+('心血管内科', 'XGNK', 1, 1, 1, '内科-心血管'),
+('呼吸内科', 'HXNK', 1, 2, 1, '内科-呼吸'),
+('普外科', 'PWK', 2, 1, 1, '外科-普外'),
+('创伤骨科', 'CSGK', 4, 1, 1, '骨科-创伤');
 
 -- 补充系统用户（用户管理页）
 INSERT INTO sys_user (username, password, name, role, role_label, department) VALUES

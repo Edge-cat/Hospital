@@ -130,7 +130,23 @@ function handleCommand(cmd) {
   font-weight: 500;
 }
 
-.nav { flex: 1; display: flex; gap: 4px; overflow-x: auto; }
+.nav {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--feishu-border-light) transparent;
+}
+
+.nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  background: var(--feishu-border-light);
+  border-radius: 4px;
+}
 
 .nav-link {
   padding: 6px 14px;

@@ -72,9 +72,11 @@
               <template #default="{ row }">{{ { admin: '管理端', user: '用户端', mini: '小程序' }[row.client] || row.client || '-' }}</template>
             </el-table-column>
             <el-table-column prop="operator" label="操作人" width="100" />
-            <el-table-column prop="module" label="模块" width="110" />
-            <el-table-column prop="action" label="动作" width="110" />
-            <el-table-column prop="path" label="路径" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="module" label="模块" width="80" />
+            <el-table-column label="操作说明" min-width="220" show-overflow-tooltip>
+              <template #default="{ row }">{{ formatOperationSummary(row) }}</template>
+            </el-table-column>
+            <el-table-column prop="path" label="路径" min-width="120" show-overflow-tooltip />
           </el-table>
           <el-empty v-else description="暂无操作记录" :image-size="48" />
         </el-card>
@@ -174,13 +176,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { statisticsApi, noticeApi, consoleApi } from '@/api'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
 import { STAT_COLORS } from '@/constants'
 import { ROLE_QUICK_LINKS, NOTICE_TYPE_STYLE } from '@/constants/dashboard'
 import DashboardTrendChart from '@/components/DashboardTrendChart.vue'
+import { formatOperationSummary } from '@/utils/operationText'
 
 const userStore = useUserStore()
 const permissionStore = usePermissionStore()
@@ -251,16 +254,24 @@ function noticeStyle(type) {
   return { borderLeftColor: s.border, background: s.bg }
 }
 
+async function loadConsole() {
+  try {
+    const consoleRes = await consoleApi.overview()
+    consoleData.value = consoleRes.data || {}
+  } catch {
+    /* 非 admin 或无权限时忽略 */
+  }
+}
+
 async function loadDashboard() {
   pageLoading.value = true
   try {
-    const [overviewRes, noticeRes, consoleRes] = await Promise.all([
+    const [overviewRes, noticeRes] = await Promise.all([
       statisticsApi.overview(),
-      noticeApi.list({ page: 1, pageSize: 6, status: 1 }),
-      consoleApi.overview().catch(() => ({ data: {} }))
+      noticeApi.list({ page: 1, pageSize: 6, status: 1 })
     ])
     overview.value = overviewRes.data
-    consoleData.value = consoleRes.data || {}
+    await loadConsole()
     notices.value = (noticeRes.data.list || []).sort((a, b) => {
       const order = { 紧急: 0, 公告: 1, 通知: 2 }
       return (order[a.type] ?? 9) - (order[b.type] ?? 9)
@@ -270,7 +281,16 @@ async function loadDashboard() {
   }
 }
 
-onMounted(loadDashboard)
+let consoleTimer = null
+
+onMounted(() => {
+  loadDashboard()
+  consoleTimer = setInterval(loadConsole, 5000)
+})
+
+onUnmounted(() => {
+  if (consoleTimer) clearInterval(consoleTimer)
+})
 </script>
 
 <style scoped>

@@ -18,7 +18,10 @@
 
           <div class="dept-card__body">
             <div class="dept-card__head">
-              <h3>{{ dept.name }}</h3>
+              <div>
+                <h3>{{ dept.name }}</h3>
+                <span v-if="dept.code" class="dept-code">{{ dept.code }}</span>
+              </div>
               <el-tag
                 v-if="dept.outpatient !== false"
                 size="small"
@@ -57,7 +60,7 @@
             </div>
 
             <p class="dept-meta">
-              <span>负责人：{{ dept.leader }}</span>
+              <span>负责人：{{ dept.leader || '—' }}</span>
               <span>{{ dept.phone }}</span>
             </p>
 
@@ -77,12 +80,14 @@ import { useRouter } from 'vue-router'
 import { userApi } from '@/api'
 import { useListPage } from '@/composables/useListPage'
 import { getDeptVisual, slotStatus, waitStatus } from '@/constants/department'
+import { enrichDepartmentList } from '@/utils/deptEnrich'
 
 const router = useRouter()
 
 const { loading, list } = useListPage(async () => {
   const res = await userApi.departments()
-  return { data: { list: res.data.list.filter((d) => d.parentId === 0) } }
+  const rows = enrichDepartmentList(res.data.list.filter((d) => d.parentId === 0))
+  return { data: { list: rows } }
 })
 
 function cardStyle(dept) {
@@ -161,7 +166,19 @@ function goDetail(dept) {
   margin: 0;
   font-size: 17px;
   font-weight: 600;
-  color: var(--feishu-text-primary);
+}
+
+.dept-code {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--feishu-text-tertiary);
+  background: var(--feishu-bg-sub);
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .specialty-row {

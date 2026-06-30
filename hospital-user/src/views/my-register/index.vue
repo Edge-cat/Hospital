@@ -24,12 +24,15 @@
 </template>
 
 <script setup>
+import { onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userApi } from '@/api'
 import { useListPage } from '@/composables/useListPage'
 import { REGISTER_STATUS } from '@/constants'
 
 const { loading, list, loadData } = useListPage(() => userApi.registerList())
+
+onActivated(loadData)
 
 async function handleCancel(row) {
   await ElMessageBox.confirm('确认退号？', '提示', { type: 'warning' })

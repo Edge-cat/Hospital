@@ -2,9 +2,13 @@ import { ref, computed, watch } from 'vue'
 import { userApi } from '@/api'
 import { TIME_SLOTS } from '@/constants'
 import { handleApiError } from '@/utils/apiError'
+import { formatLocalDate, sumDateRemaining, patchDoctorRemaining, clearDoctorRemaining } from '@/utils/scheduleUtils'
 
-/** 预约页：医生排班 + 静态 TIME_SLOTS 交集 */
-export function useAppointmentSchedule(form, doctors) {
+/** 预约页：医生排班 + 未来日期余号（排除今日） */
+export function useAppointmentSchedule(form, doctors, options = {}) {
+  const futureOnly = options.futureOnly !== false
+  const todayStr = formatLocalDate()
+
   const scheduleDates = ref([])
   const loadingSchedule = ref(false)
   const scheduleError = ref(null)
@@ -14,9 +18,15 @@ export function useAppointmentSchedule(form, doctors) {
   )
 
   const selectableDates = computed(() =>
-    scheduleDates.value.filter((d) =>
-      d.slots.some((s) => s.available && TIME_SLOTS.includes(s.timeSlot))
-    )
+    scheduleDates.value
+      .filter((d) => {
+        if (futureOnly && (d.isToday || d.date === todayStr)) return false
+        return d.slots?.some((s) => s.available && TIME_SLOTS.includes(s.timeSlot))
+      })
+      .map((d) => ({
+        ...d,
+        dayRemaining: sumDateRemaining([d], d.date)
+      }))
   )
 
   const timeSlotOptions = computed(() => {
@@ -48,6 +58,16 @@ export function useAppointmentSchedule(form, doctors) {
     scheduleError.value = null
     form.appointmentDate = ''
     form.timeSlot = ''
+    clearDoctorRemaining(doctors)
+  }
+
+  function syncDoctorRemaining(dateStr) {
+    const doc = selectedDoctor.value
+    if (!doc?.id || !dateStr) {
+      clearDoctorRemaining(doctors)
+      return
+    }
+    patchDoctorRemaining(doctors, doc.id, scheduleDates.value, dateStr)
   }
 
   async function loadSchedule() {
@@ -60,14 +80,18 @@ export function useAppointmentSchedule(form, doctors) {
     scheduleError.value = null
     form.appointmentDate = ''
     form.timeSlot = ''
+    clearDoctorRemaining(doctors)
     loadingSchedule.value = true
 
     try {
       const res = await userApi.appointmentSchedule({ doctorId: doc.id })
       scheduleDates.value = res.data?.dates || []
       const first = selectableDates.value[0]
-      if (first) selectDate(first.date)
-      else scheduleError.value = '该医生暂无可预约时段'
+      if (first) {
+        selectDate(first.date)
+      } else {
+        scheduleError.value = futureOnly ? '该医生暂无可预约的未来号源' : '该医生暂无可预约时段'
+      }
     } catch (e) {
       const body = handleApiError(e, { fallback: '加载排班失败' })
       scheduleError.value = body.message
@@ -80,6 +104,7 @@ export function useAppointmentSchedule(form, doctors) {
   function selectDate(date) {
     form.appointmentDate = date
     form.timeSlot = ''
+    syncDoctorRemaining(date)
     const day = scheduleDates.value.find((d) => d.date === date)
     const first = day?.slots.find((s) => s.available && TIME_SLOTS.includes(s.timeSlot))
     if (first) form.timeSlot = first.timeSlot
@@ -109,6 +134,7 @@ export function useAppointmentSchedule(form, doctors) {
     loadSchedule,
     selectDate,
     selectSlot,
-    resetSchedule
+    resetSchedule,
+    syncDoctorRemaining
   }
 }

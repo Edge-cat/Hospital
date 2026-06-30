@@ -11,6 +11,7 @@ export const patientApi = {
   search: (params) => request.get('/patient/search', { params }),
   startConsultation: (id) => request.post(`/patient/${id}/consultation`),
   finishConsultation: (id, data) => request.post(`/patient/${id}/finish-consultation`, data),
+  getConsultationRecord: (id) => request.get(`/patient/${id}/consultation-record`),
   joinQueue: (id) => request.post(`/patient/${id}/queue`)
 }
 
@@ -40,6 +41,12 @@ export const recordApi = {
   getChain: (id) => request.get(`/record/${id}/chain`),
   revise: (id, data) => request.post(`/record/${id}/revise`, data),
   withdraw: (id, data) => request.post(`/record/${id}/withdraw`, data)
+}
+
+export const billingApi = {
+  pending: (params) => request.get('/billing/pending', { params }),
+  detail: (recordId) => request.get(`/billing/${recordId}`),
+  confirm: (recordId, data) => request.post(`/billing/${recordId}/confirm`, data)
 }
 
 export const serviceApi = {
@@ -177,11 +184,17 @@ export const adminConfigApi = {
 
 export const adminLogApi = {
   operationList: (params) => request.get('/admin/log/operation', { params }),
+  operationRecent: (params) => request.get('/admin/log/operation/recent', { params }),
   loginList: (params) => request.get('/admin/log/login', { params })
 }
 
 export const auditApi = {
   report: (data) => request.post('/audit/report', data)
+}
+
+export const aiApi = {
+  status: () => request.get('/ai/status'),
+  doctorAssist: (data) => request.post('/ai/doctor-assist', data, { timeout: 60000 })
 }
 
 export const consoleApi = {

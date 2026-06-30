@@ -2,6 +2,7 @@ import request from '@/utils/request'
 
 export const userApi = {
   login: (data) => request.post('/auth/login', data),
+  signup: (data) => request.post('/auth/register', data),
   overview: () => request.get('/common/home-overview'),
   departments: () => request.get('/common/departments'),
   registerTypes: () => request.get('/common/register-types'),
@@ -18,5 +19,6 @@ export const userApi = {
   paymentList: (params) => request.get('/payment/list', { params }),
   payment: (data) => request.post('/payment', data),
   records: (params) => request.get('/record/list', { params }),
-  patientInfo: () => request.get('/patient/info')
+  patientInfo: () => request.get('/patient/info'),
+  aiConsult: (data) => request.post('/ai/consult', data)
 }

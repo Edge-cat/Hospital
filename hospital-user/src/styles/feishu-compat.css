@@ -1,0 +1,63 @@
+/**
+ * 跨浏览器 CSS 兼容补丁（加载于 Element Plus 主题之后）
+ */
+
+/* 分页跳转框：隐藏 number 微调按钮 */
+.el-pagination .el-input__inner {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.el-pagination .el-input__inner::-webkit-outer-spin-button,
+.el-pagination .el-input__inner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Element Plus 使用 scrollbar-width 的容器 — Safari 回退 */
+.el-scrollbar__wrap--hidden-default {
+  scrollbar-width: none;
+}
+
+.el-scrollbar__wrap--hidden-default::-webkit-scrollbar {
+  display: none;
+}
+
+.el-vl__window {
+  scrollbar-width: none;
+}
+
+.el-vl__window::-webkit-scrollbar {
+  display: none;
+}
+
+.el-splitter-panel {
+  scrollbar-width: thin;
+}
+
+.el-splitter-panel::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.el-splitter-panel::-webkit-scrollbar-thumb {
+  background: var(--el-border-color-light, #e5e6eb);
+  border-radius: 3px;
+}
+
+/* EP 选中项图标末尾重复 -webkit-mask 但未补 mask — 补标准属性 */
+.el-select-dropdown__item.is-selected::after {
+  -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg class='icon' width='200' height='200' viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='currentColor' d='M406.656 706.944L195.84 496.256a32 32 0 10-45.248 45.248l256 256 512-512a32 32 0 00-45.248-45.248L406.592 706.944z'%3E%3C/path%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml;utf8,%3Csvg class='icon' width='200' height='200' viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='currentColor' d='M406.656 706.944L195.84 496.256a32 32 0 10-45.248 45.248l256 256 512-512a32 32 0 00-45.248-45.248L406.592 706.944z'%3E%3C/path%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+/* 进度条 indeterminate：用 transform 替代 left，减少 Layout 触发 */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}

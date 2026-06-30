@@ -28,5 +28,11 @@ public class Payment {
     private String guideTip;
     private String feeBreakdown;
     private String voucherNo;
+    /** 关联挂号单 id */
+    private Long registerId;
+    /** 关联挂号单号（与 register_id 双写，兼容历史数据） */
+    private String registerNo;
+    /** 关联病历 id，诊疗费缴清后解锁患者端可见 */
+    private Long recordId;
     private LocalDateTime createTime;
 }

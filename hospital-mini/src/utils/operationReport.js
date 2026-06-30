@@ -24,6 +24,7 @@ export function reportOperation(payload, client = AUDIT_CLIENT) {
   uni.request({
     url: `${base}/audit/report`,
     method: 'POST',
+    timeout: 5000,
     data: {
       module: payload.module,
       action: payload.action,

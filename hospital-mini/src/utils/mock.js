@@ -52,18 +52,44 @@ const doctors = [
 
 const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const scheduleSlots = ['08:00-09:00', '09:00-10:00', '10:00-11:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
+const SLOT_QUOTA = 4
+
+function countDoctorBookings(doctorId, doctorName, dateStr, timeSlot) {
+  let n = myAppointments.filter((a) => {
+    if (a.status === 3) return false
+    if (a.appointmentDate !== dateStr || a.timeSlot !== timeSlot) return false
+    if (doctorId && a.doctorId === doctorId) return true
+    if (doctorName && a.doctorName === doctorName) return true
+    return false
+  }).length
+  n += myRegisters.filter((r) => {
+    if (r.status === 3) return false
+    const paid = myPayments.some(
+      (p) => p.registerId === r.id && p.itemType === 'register' && p.status === 1
+    )
+    if (!paid) return false
+    const regDate = (r.registerTime || '').slice(0, 10)
+    if (regDate !== dateStr || r.timeSlot !== timeSlot) return false
+    if (doctorId && r.doctorId === doctorId) return true
+    if (doctorName && r.doctorName === doctorName) return true
+    return false
+  }).length
+  return n
+}
 
 function buildDoctorSchedule(doctorId) {
+  const doctor = doctors.find((d) => d.id === Number(doctorId))
+  const doctorName = doctor?.name
   const dates = []
   for (let i = 0; i <= 7; i++) {
     const d = new Date()
     d.setDate(d.getDate() + i)
     const dateStr = d.toISOString().slice(0, 10)
     const weekday = weekdayNames[d.getDay()]
-    const slots = scheduleSlots.map((timeSlot, idx) => {
-      const remaining = ((doctorId * 3 + idx + i) % 4) + 1
-      const full = (doctorId + idx + i) % 7 === 0
-      return { timeSlot, remaining: full ? 0 : remaining, available: !full }
+    const slots = scheduleSlots.map((timeSlot) => {
+      const booked = countDoctorBookings(doctorId, doctorName, dateStr, timeSlot)
+      const remaining = Math.max(0, SLOT_QUOTA - booked)
+      return { timeSlot, remaining, available: remaining > 0 }
     })
     dates.push({
       date: dateStr,
@@ -89,8 +115,8 @@ const myRegisters = [
 ]
 
 const myAppointments = [
-  { id: 1, appointmentNo: 'YY20260630001', patientName: '张三', department: '外科', doctorName: '李华', appointmentDate: '2026-06-30', timeSlot: '09:00-10:00', status: 1, createTime: '2026-06-29 11:00:00' },
-  { id: 2, appointmentNo: 'YY20260701001', patientName: '张三', department: '眼科', doctorName: '刘洋', appointmentDate: '2026-07-01', timeSlot: '14:00-15:00', status: 0, createTime: '2026-06-29 12:00:00' }
+  { id: 1, appointmentNo: 'YY20260630001', patientName: '张三', department: '外科', doctorId: 2, doctorName: '李华', appointmentDate: '2026-06-30', timeSlot: '09:00-10:00', status: 1, createTime: '2026-06-29 11:00:00' },
+  { id: 2, appointmentNo: 'YY20260701001', patientName: '张三', department: '眼科', doctorId: 5, doctorName: '刘洋', appointmentDate: '2026-07-01', timeSlot: '14:00-15:00', status: 0, createTime: '2026-06-29 12:00:00' }
 ]
 
 const myPayments = [
@@ -102,6 +128,7 @@ const myPayments = [
     itemType: 'register',
     department: '内科',
     doctorName: '张明',
+    registerId: 1,
     amount: 10,
     payMethod: '微信',
     status: 1,
@@ -157,8 +184,26 @@ const myPayments = [
 ]
 
 const myRecords = [
-  { id: 1, patientName: '张三', doctorName: '张明', department: '内科', diagnosis: '上呼吸道感染', treatment: '抗病毒治疗，多休息', visitTime: '2026-06-15 09:30:00', status: 2 },
-  { id: 2, patientName: '张三', doctorName: '王芳', department: '儿科', diagnosis: '健康查体', treatment: '常规保健指导', visitTime: '2026-05-20 14:00:00', status: 2 }
+  {
+    id: 1,
+    patientName: '张三',
+    doctorName: '张明',
+    department: '内科',
+    diagnosis: '上呼吸道感染',
+    treatment: '主诉：发热、咳嗽 3 天\n检查项目：血常规\n处方：\n布洛芬缓释胶囊 0.3g 每日2次\n复方甘草片 3片 每日3次',
+    visitTime: '2026-06-15 09:30:00',
+    status: 2
+  },
+  {
+    id: 2,
+    patientName: '张三',
+    doctorName: '王芳',
+    department: '儿科',
+    diagnosis: '健康查体',
+    treatment: '主诉：常规保健咨询\n处方：\n维生素D滴剂 400IU 每日1次',
+    visitTime: '2026-05-20 14:00:00',
+    status: 2
+  }
 ]
 
 const PATIENT_PROFILE = {
@@ -185,7 +230,7 @@ export function mockRequest(options) {
       const method = options.method || 'GET'
       const data = options.data || {}
 
-      if (url === '/auth/login' && method === 'POST') {
+      if ((url === '/auth/login' || url === '/auth/wx-login') && method === 'POST') {
         const user = {
           id: 1,
           name: PATIENT_PROFILE.name,
@@ -234,33 +279,51 @@ export function mockRequest(options) {
       if (url === '/register' && method === 'POST') {
         const fee = REGISTER_FEES[data.registerType] || data.fee || 10
         const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+        const today = now.slice(0, 10)
+        const pending = myRegisters.find((r) => {
+          if (r.status === 3) return false
+          if (r.timeSlot !== (data.timeSlot || '')) return false
+          if ((r.registerTime || '').slice(0, 10) !== today) return false
+          if (data.doctorId && r.doctorId !== Number(data.doctorId)) return false
+          if (data.doctorName && r.doctorName !== data.doctorName) return false
+          return myPayments.some((p) => p.registerId === r.id && p.itemType === 'register' && p.status === 0)
+        })
+        if (pending) {
+          resolve({ code: 200, message: '挂号成功', data: pending })
+          return
+        }
         const record = {
           id: nextId(myRegisters),
           registerNo: 'GH' + Date.now(),
           patientName: data.patientName || PATIENT_PROFILE.name,
           department: data.department,
+          doctorId: data.doctorId ? Number(data.doctorId) : null,
           doctorName: data.doctorName,
           registerType: data.registerType || '普通号',
+          timeSlot: data.timeSlot || '',
           fee,
           status: 0,
           registerTime: now
         }
         myRegisters.unshift(record)
+        const paymentId = nextId(myPayments)
         myPayments.unshift({
-          id: nextId(myPayments),
+          id: paymentId,
           paymentNo: 'JF' + Date.now(),
           patientName: record.patientName,
           itemName: '挂号费',
           itemType: 'register',
           department: data.department,
           doctorName: data.doctorName,
+          registerId: record.id,
+          registerNo: record.registerNo,
           amount: fee,
           status: 0,
           payMethod: '',
           payTime: '',
           createTime: now,
           advice: '请按时到院就诊，携带身份证。',
-          guideTip: '缴费完成后请前往对应科室候诊。',
+          guideTip: '缴费完成后锁定号源，请前往对应科室候诊。',
           feeBreakdown: [{ name: '挂号费', amount: fee }]
         })
         resolve({ code: 200, message: '挂号成功', data: record })
@@ -288,6 +351,7 @@ export function mockRequest(options) {
           appointmentNo: 'YY' + Date.now(),
           patientName: data.patientName || PATIENT_PROFILE.name,
           department: data.department,
+          doctorId: data.doctorId ? Number(data.doctorId) : null,
           doctorName: data.doctorName,
           appointmentDate: data.appointmentDate,
           timeSlot: data.timeSlot,
@@ -303,6 +367,17 @@ export function mockRequest(options) {
         const item = myAppointments.find((a) => a.id === id)
         if (item) item.status = 3
         resolve({ code: 200, message: '取消成功' })
+        return
+      }
+      if (url === '/payment/summary') {
+        const pending = myPayments.filter((p) => p.status === 0)
+        resolve({
+          code: 200,
+          data: {
+            count: pending.length,
+            totalAmount: pending.reduce((s, p) => s + (p.amount || 0), 0)
+          }
+        })
         return
       }
       if (url === '/payment/list') {
@@ -336,8 +411,42 @@ export function mockRequest(options) {
         })
         return
       }
+      if (url === '/payment/batch' && method === 'POST') {
+        const ids = (data.ids || []).map(Number)
+        const paid = []
+        ids.forEach((id) => {
+          const item = myPayments.find((p) => p.id === id && p.status === 0)
+          if (item) {
+            item.status = 1
+            item.payMethod = data.payMethod || '微信'
+            item.payTime = new Date().toISOString().slice(0, 19).replace('T', ' ')
+            paid.push({ ...item, voucherNo: `PZ${Date.now()}${id}` })
+          }
+        })
+        resolve({ code: 200, message: '批量支付成功', data: { list: paid } })
+        return
+      }
       if (url === '/record/list') {
         resolve({ code: 200, data: { list: myRecords, total: myRecords.length } })
+        return
+      }
+      if (url === '/ai/consult' && method === 'POST') {
+        const recordId = Number(data.recordId)
+        const record = myRecords.find((r) => r.id === recordId)
+        if (!record) {
+          resolve({ code: 404, message: '记录不存在' })
+          return
+        }
+        const lastUser = [...(data.messages || [])].reverse().find((m) => m.role === 'user')
+        const question = lastUser?.content || '请给出就诊后建议'
+        resolve({
+          code: 200,
+          data: {
+            reply: `【Mock AI】基于「${record.department} · ${record.diagnosis}」的示例建议：\n1. 遵医嘱完成后续治疗\n2. 注意休息，避免劳累\n3. 如有不适加重请及时回院\n\n您问：${question}`,
+            disclaimer: 'AI 回答仅供健康参考，不能替代医生诊断与处方。',
+            demoMode: true
+          }
+        })
         return
       }
       if (url === '/patient/info') {

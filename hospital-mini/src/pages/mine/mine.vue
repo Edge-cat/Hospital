@@ -111,12 +111,13 @@ import { onShow } from '@dcloudio/uni-app'
 import TabBar from '@/components/TabBar.vue'
 import { mpApi } from '@/api'
 import { checkLogin, navigateToLogin } from '@/utils/request'
+import { safeNavigateTo } from '@/utils/nav'
 
 const isLogin = ref(false)
 const userName = ref('游客')
 const userPhone = ref('')
 const avatarUrl = ref('')
-const cardNo = ref('P2026001286')
+const cardNo = ref('')
 const pendingTasks = ref([])
 const itineraryBadge = ref('')
 
@@ -147,11 +148,13 @@ function loadUser() {
 
 async function loadDashboard() {
   try {
-    const [registerRes, appointmentRes, paymentRes] = await Promise.all([
+    const [registerRes, appointmentRes, paymentRes, patientRes] = await Promise.all([
       mpApi.registerList(),
       mpApi.appointmentList(),
-      mpApi.paymentList({ status: 0 })
+      mpApi.paymentList({ status: 0 }),
+      mpApi.patientInfo().catch(() => ({ data: {} }))
     ])
+    if (patientRes.data?.cardNo) cardNo.value = patientRes.data.cardNo
     const registers = registerRes.data.list.filter((r) => r.status === 0)
     const appointments = appointmentRes.data.list.filter((a) => a.status < 2)
     const unpaid = paymentRes.data.list
@@ -239,12 +242,12 @@ function goLogin() {
 
 function goPage(path) {
   if (!checkLogin()) { navigateToLogin(); return }
-  uni.navigateTo({ url: path })
+  safeNavigateTo(path)
 }
 
 function goPaidTab() {
   if (!checkLogin()) { navigateToLogin(); return }
-  uni.navigateTo({ url: '/pages/payment/payment?tab=paid' })
+  uni.redirectTo({ url: '/pages/payment/payment?tab=paid' })
 }
 
 function handleLogout() {

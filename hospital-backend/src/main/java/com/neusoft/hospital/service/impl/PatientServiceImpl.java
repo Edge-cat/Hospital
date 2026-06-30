@@ -12,9 +12,11 @@ import com.neusoft.hospital.mapper.MedicalRecordMapper;
 import com.neusoft.hospital.mapper.PatientMapper;
 import com.neusoft.hospital.mapper.PaymentMapper;
 import com.neusoft.hospital.service.PatientService;
+import com.neusoft.hospital.service.support.ConsultationFlowHelper;
 import com.neusoft.hospital.service.support.EntityPageHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -32,6 +34,7 @@ public class PatientServiceImpl implements PatientService {
     private final PatientMapper patientMapper;
     private final MedicalRecordMapper medicalRecordMapper;
     private final PaymentMapper paymentMapper;
+    private final ConsultationFlowHelper consultationFlowHelper;
 
     @Override
     public PageResult<Patient> list(PageQuery query) {
@@ -148,17 +151,30 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
+    @Transactional
     public void startConsultation(Long id) {
         Patient patient = getById(id);
         patient.setStatus(1);
         patientMapper.updateById(patient);
+        consultationFlowHelper.syncRegisterOnStart(id);
     }
 
     @Override
+    @Transactional
     public void finishConsultation(Long id, Map<String, Object> body) {
         Patient patient = getById(id);
+        if (patient.getStatus() != null && patient.getStatus() == 2) {
+            throw new BusinessException(409, "该患者已完成就诊，病历不可修改");
+        }
         patient.setStatus(2);
         patientMapper.updateById(patient);
+        consultationFlowHelper.completeConsultation(patient, body);
+    }
+
+    @Override
+    public Map<String, Object> getConsultationRecord(Long id) {
+        Patient patient = getById(id);
+        return consultationFlowHelper.getConsultationRecord(patient.getId(), patient.getStatus());
     }
 
     @Override
@@ -176,10 +192,6 @@ public class PatientServiceImpl implements PatientService {
         }
         Patient patient = patientMapper.selectOne(new LambdaQueryWrapper<Patient>()
                 .eq(Patient::getUserId, loginUser.getUserId()));
-        if (patient == null) {
-            patient = patientMapper.selectOne(new LambdaQueryWrapper<Patient>()
-                    .eq(Patient::getPhone, "13800138000"));
-        }
         if (patient == null) {
             throw new BusinessException(404, "患者档案不存在");
         }

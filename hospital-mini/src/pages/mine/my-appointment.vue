@@ -12,13 +12,16 @@
       <view class="row"><text class="label">创建时间</text><text>{{ item.createTime }}</text></view>
       <button v-if="item.status < 2" class="cancel-btn" size="mini" @click="handleCancel(item)">取消预约</button>
     </view>
+    <PageNav variant="footer" />
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { mpApi } from '@/api'
+import PageNav from '@/components/PageNav.vue'
 import { appointmentStatusMap, checkLogin, navigateToLogin } from '@/utils/request'
+import { markSlotsStale } from '@/utils/slotRefresh'
 
 const list = ref([])
 
@@ -39,7 +42,8 @@ function handleCancel(item) {
     success: async (res) => {
       if (res.confirm) {
         await mpApi.cancelAppointment(item.id)
-        uni.showToast({ title: '已取消', icon: 'success' })
+        markSlotsStale()
+        uni.showToast({ title: '已取消，号源已释放', icon: 'success' })
         loadData()
       }
     }

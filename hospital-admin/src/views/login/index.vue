@@ -68,7 +68,7 @@ const rules = {
 const demoAccounts = [
   { username: 'admin', roleLabel: '管理员', desc: '全部功能' },
   { username: 'doctor', roleLabel: '医生', desc: '患者诊疗、排班、记录' },
-  { username: 'nurse', roleLabel: '护士', desc: '挂号预约、床位、患者信息' }
+  { username: 'nurse', roleLabel: '护士', desc: '医嘱扣费确认、挂号预约、缴费' }
 ]
 
 function fillAccount(item) {

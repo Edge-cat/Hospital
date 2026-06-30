@@ -5,6 +5,11 @@ import { handleApiError } from '@/utils/apiError'
 
 const profileCache = ref(null)
 
+/** 切换账号时清空档案缓存，避免串号 */
+export function clearPatientProfileCache() {
+  profileCache.value = null
+}
+
 /** 患者档案 — 个人中心 / 预约页 / 侧栏共用 */
 export function usePatientProfile() {
   const loading = ref(false)
@@ -43,7 +48,7 @@ export function usePatientProfile() {
   }
 
   function clearCache() {
-    profileCache.value = null
+    clearPatientProfileCache()
   }
 
   return {

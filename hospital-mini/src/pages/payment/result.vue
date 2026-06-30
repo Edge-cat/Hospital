@@ -60,6 +60,9 @@
 
       <view class="action-group">
         <button class="action-btn primary" @click="goRecords">查看报告 / 就诊记录</button>
+        <button v-if="detail.recordId" class="action-btn ai" @click="goAiConsult">
+          AI 问诊 · 获取就诊后建议
+        </button>
         <button class="action-btn secondary" @click="goTriage">导诊建议 · 科室导航</button>
         <text class="action-skip" @click="goHome">返回首页</text>
       </view>
@@ -86,6 +89,15 @@ onLoad(async (options) => {
 
 function goRecords() {
   uni.navigateTo({ url: '/pages/records/records' })
+}
+
+function goAiConsult() {
+  const id = detail.value.recordId
+  if (id) {
+    uni.navigateTo({ url: `/pages/records/records?aiRecordId=${id}` })
+  } else {
+    goRecords()
+  }
 }
 
 function goTriage() {
@@ -273,6 +285,12 @@ function goHome() {
   background: linear-gradient(135deg, #3370ff, #5b8fff);
   color: #fff;
   box-shadow: 0 8rpx 24rpx rgba(51, 112, 255, 0.25);
+}
+
+.action-btn.ai {
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  color: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(124, 58, 237, 0.25);
 }
 
 .action-btn.secondary {

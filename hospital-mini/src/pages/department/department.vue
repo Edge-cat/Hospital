@@ -11,6 +11,7 @@
         <text class="dept-icon">{{ dept.icon }}</text>
         <view class="dept-info">
           <text class="dept-name">{{ dept.name }}</text>
+          <text v-if="dept.code" class="dept-code">编码 {{ dept.code }}</text>
           <text class="dept-desc">{{ dept.desc || '提供门诊与住院诊疗服务' }}</text>
           <text class="dept-leader">负责人：{{ dept.leader || '—' }}</text>
           <text v-if="waitLabel(dept)" class="dept-wait">{{ waitLabel(dept) }}</text>
@@ -18,13 +19,16 @@
       </view>
       <text class="arrow">›</text>
     </view>
+    <PageNav variant="footer" />
   </view>
 </template>
 
 <script setup>
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { onMounted } from 'vue'
+import PageNav from '@/components/PageNav.vue'
 import { useDepartments } from '@/composables/useDepartments'
+import { safeNavigateTo } from '@/utils/nav'
 import { waitLabel } from '@/utils/deptIcon'
 
 const { departments, loading, error, load, refresh } = useDepartments()
@@ -37,7 +41,7 @@ onPullDownRefresh(async () => {
 })
 
 function goDetail(dept) {
-  uni.navigateTo({ url: `/pages/department/detail?id=${dept.id}&name=${encodeURIComponent(dept.name)}` })
+  safeNavigateTo(`/pages/department/detail?id=${dept.id}&name=${encodeURIComponent(dept.name)}`)
 }
 </script>
 
@@ -90,6 +94,14 @@ function goDetail(dept) {
   font-size: 32rpx;
   font-weight: 600;
   color: #303133;
+}
+
+.dept-code {
+  display: block;
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 6rpx;
+  letter-spacing: 0.04em;
 }
 
 .dept-desc {

@@ -44,9 +44,12 @@
         {{ clientLabel(row.client) }}
       </template>
     </el-table-column>
-    <el-table-column prop="module" label="操作模块" width="120" />
-    <el-table-column prop="action" label="操作类型" width="120" />
-    <el-table-column prop="path" label="路径" min-width="160" show-overflow-tooltip />
+    <el-table-column prop="module" label="操作模块" width="100" />
+    <el-table-column label="操作说明" min-width="240" show-overflow-tooltip>
+      <template #default="{ row }">{{ formatOperationSummary(row) }}</template>
+    </el-table-column>
+    <el-table-column prop="action" label="动作类型" width="120" />
+    <el-table-column prop="path" label="路径" min-width="140" show-overflow-tooltip />
     <el-table-column prop="ip" label="IP地址" width="130" />
     <el-table-column prop="status" label="状态" width="80">
       <template #default="{ row }">
@@ -61,6 +64,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { adminLogApi } from '@/api'
 import { useDict } from '@/composables/useDict'
+import { useOperationFeed } from '@/composables/useOperationFeed'
+import { formatOperationSummary } from '@/utils/operationText'
 
 const { options } = useDict()
 const loginStatuses = options('loginStatus')
@@ -101,6 +106,13 @@ async function loadData() {
     loading.value = false
   }
 }
+
+useOperationFeed({
+  notify: false,
+  onNew() {
+    if (query.page === 1) loadData()
+  }
+})
 
 onMounted(loadData)
 </script>

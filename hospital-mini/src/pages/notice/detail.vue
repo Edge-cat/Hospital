@@ -9,6 +9,7 @@
       <view class="divider" />
       <text class="content">{{ notice.content }}</text>
     </view>
+    <PageNav variant="footer" />
   </view>
 </template>
 
@@ -16,6 +17,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { mpApi } from '@/api'
+import PageNav from '@/components/PageNav.vue'
 
 const notice = ref({})
 

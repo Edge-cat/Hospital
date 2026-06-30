@@ -1,30 +1,35 @@
 # 东软云医院 HIS — 后端服务
 
-Spring Boot 3.2 + MyBatis-Plus + MySQL/H2，与三端前端 Mock 契约对齐。
+Spring Boot 3.2 + MyBatis-Plus + **Docker MySQL**，与三端前端 Mock 契约对齐。
 
 ## 技术栈
 
 - Java 17、Spring Boot 3.2.5
 - MyBatis-Plus 3.5.7
 - JWT（jjwt 0.12）
-- MySQL 8（生产）/ H2 内存库（本地默认）
+- MySQL 8（Docker，端口 3307）
 
 ## 快速启动
+
+1. 启动 Docker MySQL（见根目录 `README.md` 或 `execution/scripts/restart-docker-mysql.ps1`）
+2. 启动后端：
 
 ```bash
 cd hospital-backend
 mvn spring-boot:run
 ```
 
-默认 **H2 内存库**（`spring.profiles.active=h2`），无需安装 MySQL 即可启动，端口 **8080**。
+默认 **prod** profile，连接 `127.0.0.1:3307/hospital_his`，端口 **8080**。  
+`spring.sql.init.mode=never`，**不会在每次启动时重灌数据**。
 
-### 使用 MySQL
+### 环境变量（可选）
 
-1. 创建数据库：`CREATE DATABASE hospital_his DEFAULT CHARSET utf8mb4;`
-2. 修改 `application.yml` 中 mysql profile 的用户名密码
-3. 启动：`mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=mysql`
-
-`schema.sql` 与 `data.sql` 会在启动时自动执行。
+- `HOSPITAL_DB_URL` / `HOSPITAL_DB_USER` / `HOSPITAL_DB_PASSWORD`
+- `DEEPSEEK_API_KEY` — DeepSeek API Key（配置后启用 AI 问诊 `/api/ai/consult`）
+- `DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com`）
+- `DEEPSEEK_MODEL`（默认 `deepseek-chat`）
+- `HOSPITAL_AI_ENABLED`（默认 `true`；未配置 Key 时返回演示模式回复）
+- IDEA 使用 `.idea/runConfigurations/HospitalBackend_prod.xml`
 
 ## API 契约
 

@@ -31,5 +31,7 @@ public interface PatientService {
 
     void joinQueue(Long id);
 
+    Map<String, Object> getConsultationRecord(Long id);
+
     Map<String, Object> getLoggedInPatientInfo();
 }

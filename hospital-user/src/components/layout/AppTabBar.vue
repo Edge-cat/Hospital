@@ -53,6 +53,7 @@ function onTap(e) {
   height: 56px;
   padding-bottom: env(safe-area-inset-bottom, 0);
   background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--feishu-border-light);
   grid-template-columns: repeat(5, 1fr);

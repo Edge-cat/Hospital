@@ -59,6 +59,11 @@ export function setupPermissionGuard(router) {
     }
 
     // ---- 4. 路由权限校验 ----
+    if (userStore.role === 'nurse' && to.path === '/patient/consultation') {
+      next({ path: '/patient/billing-confirm', replace: true })
+      return
+    }
+
     if (to.matched.length === 0 || (to.name && to.name !== 'Layout' && !router.hasRoute(to.name))) {
       next({ name: 'Forbidden' })
       return

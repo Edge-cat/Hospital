@@ -43,6 +43,28 @@ public class OperationLogServiceImpl implements OperationLogService {
     }
 
     @Override
+    public void recordPatientAction(String client, String module, String action, String path, String detail) {
+        OperationReportRequest request = new OperationReportRequest();
+        request.setClient(resolveAuditClient(client));
+        request.setModule(module);
+        request.setAction(action);
+        request.setPath(path);
+        request.setDetail(detail);
+        request.setStatus(1);
+        recordFrontend(request);
+    }
+
+    @Override
+    public List<SysOperationLog> listSince(Long sinceId, int limit) {
+        long cursor = sinceId != null ? sinceId : 0L;
+        int size = limit > 0 ? Math.min(limit, 50) : 20;
+        return operationLogMapper.selectList(new LambdaQueryWrapper<SysOperationLog>()
+                .gt(SysOperationLog::getId, cursor)
+                .orderByAsc(SysOperationLog::getId)
+                .last("LIMIT " + size));
+    }
+
+    @Override
     public Map<String, Object> consoleOverview() {
         LocalDateTime start = LocalDate.now().atStartOfDay();
         LocalDateTime end = start.plusDays(1);
@@ -109,5 +131,16 @@ public class OperationLogServiceImpl implements OperationLogService {
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private String resolveAuditClient(String fallback) {
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            String header = attrs.getRequest().getHeader("X-Audit-Client");
+            if (StringUtils.hasText(header)) {
+                return header;
+            }
+        }
+        return StringUtils.hasText(fallback) ? fallback : "mini";
     }
 }

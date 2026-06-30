@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
 CREATE TABLE IF NOT EXISTS sys_department (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(64) NOT NULL,
+    code VARCHAR(16),
     parent_id BIGINT DEFAULT 0,
     sort INT DEFAULT 0,
     status TINYINT DEFAULT 1,
@@ -86,6 +87,7 @@ CREATE TABLE IF NOT EXISTS register_order (
     fee DECIMAL(10,2),
     status TINYINT DEFAULT 0,
     register_time TIMESTAMP,
+    time_slot VARCHAR(32),
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -120,6 +122,9 @@ CREATE TABLE IF NOT EXISTS payment (
     guide_tip VARCHAR(512),
     fee_breakdown LONGTEXT,
     voucher_no VARCHAR(64),
+    register_id BIGINT,
+    register_no VARCHAR(32),
+    record_id BIGINT,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -132,6 +137,7 @@ CREATE TABLE IF NOT EXISTS medical_record (
     department VARCHAR(64),
     diagnosis VARCHAR(255),
     treatment VARCHAR(512),
+    order_items LONGTEXT,
     visit_time TIMESTAMP,
     status TINYINT DEFAULT 2,
     revision_status TINYINT DEFAULT 0,
@@ -371,14 +377,14 @@ INSERT INTO sys_user (username, password, name, role, role_label, department) VA
 ('nurse', '123456', '李护士', 'nurse', '护士', '内科'),
 ('patient', '123456', '张三', 'patient', '患者', NULL);
 
-INSERT INTO sys_department (name, parent_id, sort, status, description) VALUES
-('内科', 0, 1, 1, '内科诊疗'),
-('外科', 0, 2, 1, '外科诊疗'),
-('儿科', 0, 3, 1, '儿科诊疗'),
-('骨科', 0, 4, 1, '骨科诊疗'),
-('眼科', 0, 5, 1, '眼科诊疗'),
-('皮肤科', 0, 6, 1, '皮肤科诊疗'),
-('口腔科', 0, 7, 1, '口腔科诊疗');
+INSERT INTO sys_department (name, code, parent_id, sort, status, description) VALUES
+('内科', 'NK', 0, 1, 1, '内科诊疗'),
+('外科', 'WK', 0, 2, 1, '外科诊疗'),
+('儿科', 'EK', 0, 3, 1, '儿科诊疗'),
+('骨科', 'GK', 0, 4, 1, '骨科诊疗'),
+('眼科', 'YK', 0, 5, 1, '眼科诊疗'),
+('皮肤科', 'PFK', 0, 6, 1, '皮肤科诊疗'),
+('口腔科', 'KQK', 0, 7, 1, '口腔科诊疗');
 
 INSERT INTO patient (patient_no, name, gender, age, phone, id_card, card_no, address, allergy_history, chronic_disease, status, user_id) VALUES
 ('P2026001286', '张三', 1, 36, '13800138000', '110101199001011234', 'P2026001286', '北京市朝阳区', '无', '无', 0, 4);
@@ -487,6 +493,7 @@ INSERT INTO sys_menu (id, parent_id, name, path, icon, sort, status) VALUES
 (22, 2, '医生添加患者', '/patient/add', NULL, 2, 1),
 (23, 2, '患者查询', '/patient/search', NULL, 3, 1),
 (24, 2, '医生开始就诊', '/patient/consultation', NULL, 4, 1),
+(25, 2, '医嘱扣费确认', '/patient/billing-confirm', NULL, 5, 1),
 (3, 0, '人事管理', '/hr', 'Avatar', 3, 1),
 (31, 3, '医生信息管理', '/hr/doctor', NULL, 1, 1),
 (32, 3, '排班管理', '/hr/schedule', NULL, 2, 1),
@@ -537,7 +544,7 @@ INSERT INTO sys_dict (dict_type, dict_label, dict_value, sort, status, remark) V
 ('notice_type', '通知', 'info', 2, 1, '公告类型');
 
 INSERT INTO sys_role_menu (role_code, menu_id) VALUES
-('admin', 1), ('admin', 2), ('admin', 21), ('admin', 22), ('admin', 23), ('admin', 24),
+('admin', 1), ('admin', 2), ('admin', 21), ('admin', 22), ('admin', 23), ('admin', 24), ('admin', 25),
 ('admin', 3), ('admin', 31), ('admin', 32), ('admin', 33), ('admin', 34),
 ('admin', 4), ('admin', 41), ('admin', 42), ('admin', 43), ('admin', 44),
 ('admin', 5), ('admin', 51), ('admin', 52), ('admin', 53), ('admin', 54),
@@ -547,15 +554,15 @@ INSERT INTO sys_role_menu (role_code, menu_id) VALUES
 ('admin', 105), ('admin', 106), ('admin', 107), ('admin', 108),
 ('doctor', 2), ('doctor', 21), ('doctor', 22), ('doctor', 23), ('doctor', 24),
 ('doctor', 3), ('doctor', 31), ('doctor', 32), ('doctor', 33), ('doctor', 34),
-('nurse', 2), ('nurse', 21), ('nurse', 23), ('nurse', 7), ('nurse', 71), ('nurse', 72);
+('nurse', 2), ('nurse', 21), ('nurse', 23), ('nurse', 25), ('nurse', 7), ('nurse', 71), ('nurse', 72);
 
 -- ========== 演示数据充盈（全页面有内容） ==========
 -- 子科室
-INSERT INTO sys_department (name, parent_id, sort, status, description) VALUES
-('心血管内科', 1, 1, 1, '内科-心血管'),
-('呼吸内科', 1, 2, 1, '内科-呼吸'),
-('普外科', 2, 1, 1, '外科-普外'),
-('创伤骨科', 4, 1, 1, '骨科-创伤');
+INSERT INTO sys_department (name, code, parent_id, sort, status, description) VALUES
+('心血管内科', 'XGNK', 1, 1, 1, '内科-心血管'),
+('呼吸内科', 'HXNK', 1, 2, 1, '内科-呼吸'),
+('普外科', 'PWK', 2, 1, 1, '外科-普外'),
+('创伤骨科', 'CSGK', 4, 1, 1, '骨科-创伤');
 
 INSERT INTO sys_user (username, password, name, role, role_label, department) VALUES
 ('pharmacist', '123456', '王药师', 'nurse', '药师', '药房'),

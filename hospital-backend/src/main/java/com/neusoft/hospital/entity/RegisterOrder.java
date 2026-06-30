@@ -1,6 +1,7 @@
 package com.neusoft.hospital.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -23,5 +24,8 @@ public class RegisterOrder {
     private BigDecimal fee;
     private Integer status;
     private LocalDateTime registerTime;
+    /** 当日挂号所选时段，与 appointment.time_slot 对齐，用于号源统计 */
+    @TableField("time_slot")
+    private String timeSlot;
     private LocalDateTime createTime;
 }

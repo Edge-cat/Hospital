@@ -55,6 +55,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             Map<String, Object> node = new LinkedHashMap<>();
             node.put("id", dept.getId());
             node.put("name", dept.getName());
+            node.put("code", dept.getCode());
             node.put("parentId", dept.getParentId());
             node.put("sort", dept.getSort());
             node.put("status", dept.getStatus());

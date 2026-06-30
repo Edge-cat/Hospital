@@ -1,38 +1,50 @@
 import { resolveApiAudit } from './auditMap'
 import { reportOperation } from './operationReport'
 
+export { navigateToLogin } from './nav'
+
 const BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
 export function request(options) {
+  const silent = options.silent === true
   return new Promise((resolve, reject) => {
     const token = uni.getStorageSync('his_token') || ''
     uni.request({
       url: BASE_URL + options.url,
       method: options.method || 'GET',
       data: options.data || {},
+      timeout: options.timeout ?? 15000,
       header: {
         'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : ''
+        Authorization: token ? `Bearer ${token}` : '',
+        'X-Audit-Client': 'mini'
       },
       success(res) {
         if (res.statusCode === 200) {
           const data = res.data
           if (data.code !== undefined && data.code !== 200) {
-            uni.showToast({ title: data.message || '请求失败', icon: 'none' })
-            reject(data)
+            const msg = data.message || '请求失败'
+            if (!silent) uni.showToast({ title: msg, icon: 'none' })
+            reject({ message: msg, ...data })
           } else {
             const audit = resolveApiAudit(options)
             if (audit) reportOperation(audit)
             resolve(data)
           }
         } else {
-          uni.showToast({ title: '网络异常', icon: 'none' })
-          reject(res)
+          const body = typeof res.data === 'object' && res.data ? res.data : {}
+          const msg = body.message || (res.statusCode === 401 ? '请先登录' : `请求失败(${res.statusCode})`)
+          if (!silent) uni.showToast({ title: msg, icon: 'none' })
+          reject({ message: msg, statusCode: res.statusCode, data: body })
         }
       },
       fail(err) {
-        uni.showToast({ title: '网络连接失败', icon: 'none' })
-        reject(err)
+        const errMsg = err?.errMsg || ''
+        const msg = errMsg.includes('timeout')
+          ? '请求超时，请确认后端 :8080 已启动'
+          : '网络连接失败，请检查后端是否启动'
+        if (!silent) uni.showToast({ title: msg, icon: 'none' })
+        reject({ message: msg })
       }
     })
   })
@@ -42,9 +54,7 @@ export function checkLogin() {
   return !!uni.getStorageSync('his_token')
 }
 
-export function navigateToLogin() {
-  uni.navigateTo({ url: '/pages/login/login' })
-}
+// navigateToLogin 由 ./nav.js 导出
 
 export const registerStatusMap = {
   0: { label: '待就诊', class: 'tag-warning' },

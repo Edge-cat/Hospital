@@ -1,8 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="HospitalBackend (prod)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+  <configuration default="true" name="HospitalBackend (prod)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
     <module name="hospital-backend" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="com.neusoft.hospital.HospitalApplication" />
     <option name="ACTIVE_PROFILES" value="prod" />
+    <option name="WORKING_DIRECTORY" value="$MODULE_WORKING_DIR$" />
     <option name="ENV_VARIABLES">
       <map>
         <entry key="HOSPITAL_DB_URL" value="jdbc:mysql://127.0.0.1:3307/hospital_his?useUnicode=true&amp;characterEncoding=utf8&amp;connectionCollation=utf8mb4_unicode_ci&amp;serverTimezone=Asia/Shanghai&amp;allowPublicKeyRetrieval=true&amp;useSSL=false" />
